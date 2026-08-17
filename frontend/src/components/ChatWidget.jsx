@@ -4,7 +4,8 @@ import * as api from '../api.js'
 import DetailModal from './DetailModal.jsx'
 import CheckoutModal from './CheckoutModal.jsx'
 
-const SUGGESTS = ['말티톨 없는 제로 초콜릿 5천원 이하', '아스파탐 안 들어간 콜라', '1만원 이하 제로 아이스크림']
+// 전부 실데이터로 결과가 나오는 것을 확인한 질의만 노출한다 (0건 예시는 데모를 깬다)
+const SUGGESTS = ['말티톨 없는 제로 초콜릿', '아스파탐 안 들어간 콜라', '1만원 이하 저당 아이스크림']
 
 export default function ChatWidget() {
   const { member } = useStore()
@@ -50,7 +51,7 @@ export default function ChatWidget() {
               {m.products?.map((p) => (
                 <div key={p.productId} className="mini" onClick={() => openDetail(p)}>
                   <span style={{ flex: 1 }}>{p.name}</span>
-                  <b className="num">{p.price.toLocaleString()}원</b>
+                  <b className="num">{(p.price ?? 0).toLocaleString()}원</b>
                 </div>
               ))}
               {m.usedFallback && <span className="fb">규칙 기반 응답 (usedFallback)</span>}
@@ -62,7 +63,7 @@ export default function ChatWidget() {
           {SUGGESTS.map((s) => <button key={s} onClick={() => send(s)}>{s}</button>)}
         </div>
         <div className="chatin">
-          <input value={input} placeholder="예: 수크랄로스 없는 음료 3천원 이하"
+          <input value={input} placeholder="예: 수크랄로스 없는 음료 2만원 이하"
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && send()} />
           <button onClick={() => send()}>전송</button>

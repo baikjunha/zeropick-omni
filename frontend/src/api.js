@@ -139,11 +139,26 @@ export const chat = (body) =>
       }
     })
 
-// 백엔드 MetricsResponse 를 관리자 화면 필드명으로 변환한다 (ctr·fallbackRate 는 0~1 → %).
+// 백엔드 MetricsResponse 를 관리자 화면 필드명으로 변환한다.
+// 실제 백엔드(#33)는 clickThroughRate/fallbackRate 를 이미 %(0~100)로 내려주고,
+// 행동 이벤트 집계·응답시간(avg/p95)은 제공하지 않는다(행동 수치는 로컬 이벤트로 보완).
 export const fetchMetrics = () =>
   tryApi(() => api.get('/recommendation-service/metrics'), () => mock.metrics())
     .then((m) => {
-      if (!m || m.ctr === undefined) return m
+      if (!m) return m
+      if (m.clickThroughRate !== undefined) {
+        const local = mock.metrics()   // viewed/cartAdded/ordered 는 로컬 이벤트 기준
+        return {
+          viewed: local.viewed, cartAdded: local.cartAdded, ordered: local.ordered,
+          conversionRate: local.conversionRate,
+          recoClicks: m.totalClicks ?? 0,
+          clickRate: m.clickThroughRate ?? 0,          // 이미 % — 재환산 금지
+          fallbackRate: m.fallbackRate ?? 0,           // 이미 %
+          chatCount: m.totalChatRequests ?? 0,
+          avgLatencyMs: null, chatAvgMs: null, chatP95Ms: null,  // 백엔드 미제공
+        }
+      }
+      if (m.ctr === undefined) return m                // mock 폴백은 그대로 통과
       const ev = m.eventCounts || {}
       const viewed = ev.PRODUCT_VIEWED ?? 0
       return {
@@ -172,17 +187,22 @@ export const postRecoClick = (body) =>
   })
 
 // 자연어 상품 검색 (선택 10) — 조건 추출 후 상품 반환. 폴백은 챗봇과 같은 규칙 파서.
-// 계약(openapi)의 요청 필드는 query, 응답은 { extracted, products: Product[] } 이다.
+// 실제 백엔드(#32) 응답은 { extractedCondition, usedFallback, totalCount, products } 이고
+// 상품 식별자는 productId 가 아니라 id 다. null 조건 필드는 표시에서 제외한다.
 export const nlSearch = (message) =>
   tryApi(() => api.post('/recommendation-service/search', { query: message }, { timeout: 25000 }),
     () => mock.chat(store.getProducts(), message))
     .then((res) => {
-      if (!res || res.extracted === undefined) return res
-      const cond = Object.entries(res.extracted || {})
+      if (!res) return res
+      const ext = res.extracted ?? res.extractedCondition
+      if (ext === undefined) return res
+      const cond = Object.entries(ext || {})
+        .filter(([, v]) => v !== null && v !== undefined)
         .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join('·') : v}`).join(' / ')
       return {
         reply: cond ? `추출 조건 — ${cond}` : null,
-        products: (res.products || []).map((p) => ({ productId: p.id, name: p.name, price: p.price })),
+        usedFallback: res.usedFallback,
+        products: (res.products || []).map((p) => ({ productId: p.productId ?? p.id, name: p.name, price: p.price })),
       }
     })
 
