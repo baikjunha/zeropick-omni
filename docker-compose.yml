@@ -61,6 +61,7 @@ services:
     environment:
       - SPRING_CONFIG_IMPORT=optional:configserver:http://config-service:8888
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - SCHEMA_REGISTRY_URL=http://schema-registry:8085
       - LLM_API_KEY=${LLM_API_KEY:-}
       - SPRING_APPLICATION_JSON={"eureka":{"client":{"service-url":{"defaultZone":"http://service-discovery:8761/eureka/"}}}}
 
