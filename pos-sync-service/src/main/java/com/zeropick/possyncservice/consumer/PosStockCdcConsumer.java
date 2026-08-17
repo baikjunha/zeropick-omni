@@ -32,7 +32,7 @@ public class PosStockCdcConsumer {
         this.tracker = tracker;
     }
 
-    @KafkaListener(topics = "zeropick.pos.pos.pos_stock", groupId = "pos-sync-service")
+    @KafkaListener(id = "posCdc", topics = "zeropick.pos.pos.pos_stock", groupId = "pos-sync-service", autoStartup = "false")
     public void onCdcEvent(String message) {
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             try {

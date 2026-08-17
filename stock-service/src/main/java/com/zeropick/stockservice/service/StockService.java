@@ -32,20 +32,25 @@ public class StockService {
     @Async
     @EventListener(ApplicationReadyEvent.class)
     public void initFromCatalog() {
-        if (stockRepository.count() > 0) {
-            log.info("[재고 초기화] 기존 원장 {}건 존재 — 건너뜀", stockRepository.count());
-            return;
-        }
         for (int attempt = 1; attempt <= INIT_MAX_RETRY; attempt++) {
             try {
                 List<Map<String, Object>> products = productCatalogClient.getAllProducts();
-                List<Stock> rows = products.stream()
-                        .map(p -> new Stock(
-                                ((Number) p.get("id")).longValue(),
-                                p.get("stock") == null ? 0 : ((Number) p.get("stock")).intValue()))
-                        .toList();
-                stockRepository.saveAll(rows);
-                log.info("[재고 초기화] 카탈로그 {}건 → 재고 원장 구성 완료", rows.size());
+                int created = 0;
+                int filled = 0;
+                for (Map<String, Object> p : products) {
+                    long productId = ((Number) p.get("id")).longValue();
+                    int seedStock = p.get("stock") == null ? 0 : ((Number) p.get("stock")).intValue();
+                    Stock existing = stockRepository.findById(productId).orElse(null);
+                    if (existing == null) {
+                        stockRepository.save(new Stock(productId, seedStock));
+                        created++;
+                    } else if (existing.getOnlineStock() == 0 && seedStock > 0) {
+                        stockRepository.restore(productId, seedStock);
+                        filled++;
+                    }
+                }
+                log.info("[재고 초기화] 카탈로그 {}건 — 신규 {}, 보충 {}",
+                        products.size(), created, filled);
                 return;
             } catch (Exception e) {
                 log.warn("[재고 초기화] product-service 대기 중 ({}/{}) — {}",
