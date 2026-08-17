@@ -1,102 +1,110 @@
-# Retail-AI-Shop — 제로픽 (ZeroPick)
+# ZeroPick Omni — 저당·제로 커머스 + 실시간 재고 동기화
 
-저당·제로 식품 전문 커머스 + 조건 기반 개인화 추천 + 상담 챗봇
+> LG CNS AM Inspire Camp 5기 미니프로젝트 2 [팀 프로젝트](https://github.com/2kmkmkm/Retail-AI-Shop)(RTL-M, 난이도 중)의 개인 확장판.
+> 팀 결과물 위에 리테일 난이도 '상' 과제(RTL-H)의 핵심 차별화 기술을 얹어
+> **RTL-M(중)·RTL-H(상) 두 채점표의 핵심 요구사항을 모두 충족**하도록 재설계했다.
 
-LG CNS AM Inspire Camp 5기 · 2차 미니 프로젝트 · 과제 **[RTL-M]** (리테일 · 난이도 중)
+## 아키텍처
 
----
+```mermaid
+flowchart LR
+    FE[React 프론트엔드] --> GW[API Gateway :8000]
+    GW --> P[product-service :8081<br/>상품 카탈로그]
+    GW --> C[commerce-service :8082<br/>회원·장바구니·주문·모의결제]
+    GW --> R[recommendation-service :8083<br/>AI 추천·챗봇·자연어검색·지표]
+    GW --> S[stock-service :8084<br/>재고 원장 - 독립 서비스]
+    GW --> PS[pos-sync-service :8086<br/>POS 동기화·DLQ]
 
-## 1. 서비스 개요
+    C -- "Feign: 재고 차감·복구 (409)" --> S
+    P -- "Feign: 재고 오버레이" --> S
+    C -- "행동 이벤트 (Avro)" --> K[(Kafka)]
+    K --> R
 
-못 먹는 감미료·알레르기·가격대를 등록하면, 조회·구매 행동을 반영해 조건에 맞는 상품을
-추천 이유와 함께 제시한다. 상품 목록의 기본 정렬이 추천순이며, 상담 챗봇이 자연어 질의
-("말티톨 없는 제로 초콜릿 5천원 이하")에 상품과 근거로 답한다.
-
-| 항목 | 내용 |
-|---|---|
-| 기간 | 2026-08-13 ~ (40시간) |
-| 목표 | 기능 100점 (핵심 10개 70 + 선택 10개 30) |
-| 핵심 차별화 기술 (핵심 10번) | LLM 상담 챗봇 — 실패 시 규칙 기반 폴백 |
-
-## 2. 기술 스택
-
-팀 표준: **Spring Boot 4.0.7** (2026-08-13 확정 — start.spring.io 가 현재 4.x 만 제공하고, 인프라 3종이 4.0.7 로 구축·검증됨).
-수업·강사 레포(`joneconsulting/new-toy-msa`)는 3.5 기준이므로 수업 코드 복붙 시 아래 주의 참고.
-
-| 구분 | 값 |
-|---|---|
-| 빌드 | **Maven** (Gradle 아님) |
-| Java / Spring Boot / Cloud | 17 / **4.0.7** / **2025.1.2** |
-| DB | H2 (개발) / MariaDB (통합) — 서비스별 분리 |
-| 메시징 | Kafka + Schema Registry (Avro, BACKWARD) |
-| 이미지 | 멀티스테이지 (`maven:3.9.11-eclipse-temurin-17` → `eclipse-temurin:17-jre`) |
-
-> **수업 코드(3.5) 복붙 주의** — Gateway 의존성은 `spring-cloud-starter-gateway-server-webflux`
-> (yml 키는 `spring.cloud.gateway.server.webflux.routes` — 강사 레포와 동일). Swagger 는 Boot 4 용 springdoc **3.x**.
-> web·data-jpa·validation·kafka·openfeign·config 스타터는 이름 동일 — Boot 4 호환 존재 확인 완료
-> (OpenFeign 5.0.2 · Config client 5.0.4 · springdoc 3.1.0).
-
-> **플랫폼 주의** — Mac(Apple Silicon)에서 만든 arm64 이미지는 Windows·EC2에서
-> `exec format error`로 즉시 종료된다. 공유 이미지는 `docker buildx build --platform linux/amd64`.
-
-## 3. 서비스 구성 · 포트
-
-| 서비스 | 포트 | 책임 |
-|---|---|---|
-| `product-service` | 8081 | 상품·영양정보·감미료·재고 |
-| `commerce-service` | 8082 | 회원·로그인·장바구니·주문·모의결제(PENDING→PAID)·행동 이벤트 발행 |
-| `recommendation-service` | 8083 | 선호 조건·행동 로그·추천 점수·상담 챗봇(LLM+폴백) |
-| API Gateway | 8000 | 단일 진입점 |
-| Eureka / Config | 8761 / 8888 | |
-| Kafka / Schema Registry | 9092 / **8085** | 8081 충돌로 변경 |
-| Prometheus / Grafana / Zipkin | 9090 / 3000 / 9411 | |
-
-## 4. 개발 계약 문서 (`docs/`)
-
-**코드 작성 전에 이 세 개부터.** 전부 자동 검증 통과 상태다 (`docs/verify/verify_docs.py`, 38 검사).
-
-| 문서 | 내용 | 검증 |
-|---|---|---|
-| [제로픽_ERD.dbml](docs/제로픽_ERD.dbml) · [sql/](docs/sql) | 스키마 3개 + 시드 18개. dbml 은 dbdiagram.io 붙여넣기용 | H2(MariaDB 모드) 실행 |
-| [API명세서.md](docs/API명세서.md) · [openapi/openapi.yaml](docs/openapi/openapi.yaml) | 경로 22개 (회원·주문취소·behaviors·상품 CRUD·재고 차감/복구 포함) | OpenAPI 3.0.3 검증 |
-| [이벤트스키마.md](docs/이벤트스키마.md) · [avro/](docs/avro) | 토픽 3개, 파티션·컨슈머 그룹, 가중치(조회+1/담기0/주문+50) | fastavro 왕복 |
-
-시드: [docs/시드데이터_zerofinder.csv](docs/시드데이터_zerofinder.csv) — 크롤링 515건 (영양·감미료 전 건, 이미지 URL 포함).
-수기 입력(1인 25개) 계획은 폐기. 가격 없는 항목은 로딩 시 임의값, 카테고리는 원문 유지 — 5분류로 걸러 쓸지 회의에서 결정.
-
-## 5. 로컬 실행
-
-```bash
-# ① 네트워크 (최초 1회)
-docker network create ecommerce-network
-
-# ② 아우터 아키텍처 (Config·Eureka·Kafka·Schema Registry·DB)
-docker compose -f docker-compose.yml up -d
-
-# ③ 마이크로서비스 (Gateway 는 여기, 맨 마지막)
-docker compose -f docker-compose-ms.yml up -d
+    POS[(가상 POS DB<br/>MariaDB binlog)] -- Debezium CDC --> K
+    K -- "pos_stock 변경 이벤트" --> PS
+    PS -- "절대값 반영 (멱등)" --> S
+    K -- "JDBC Sink" --> STL[(가상 정산 DB)]
 ```
 
-> 기동 순서 주의 — Gateway 가 Config 보다 먼저 뜨면 설정을 못 받아 500 (수업 08-07 확인).
-> 스키마는 각 서비스가 JPA 로 생성하거나 `docs/sql/` 실행.
+재고 소유권은 **stock-service 로 완전히 분리**했다. 온라인 재고(주문 차감·복구)와
+POS 재고(CDC 동기화)를 한 원장에서 관리하고, 조건부 UPDATE + 낙관적 락(@Version)으로
+동시 주문·동시 동기화의 갱신 유실을 막는다. POS 반영은 after 절대값 세팅이라 멱등이며,
+재시도·DLQ 재소비에 안전하다.
 
-## 6. 협업 규칙
+## 듀얼 체크리스트 커버리지
 
-- 브랜치 전략: `feature/*` → **`develop`** 으로 PR 머지(1인 승인, 셀프 머지 금지).
-  `main` 은 시연·제출 시점에 develop 을 머지하는 안정 브랜치 — 직접 push 금지.
-- 브랜치: `<type>/<서비스>-<기능>` — 예: `feat/reco-kafka-consumer`, `chore/product-init`
-- 커밋: `<type>: <설명>` — feat / fix / refactor / chore / docs / test
-- 금지: `.env`·LLM API 키 커밋 (키는 Config Server), `--force`
+### RTL-M (중 · AI 커머스) 핵심 10
 
-## 7. 팀 (A안 — 1인 1서비스)
+| # | 요구사항 | 구현 |
+|---|---|---|
+| 1 | 서비스 3개 이상 분리 | 도메인 서비스 5개 (product·commerce·reco·stock·pos-sync) |
+| 2 | Eureka | 전 서비스 등록 |
+| 3 | Gateway 단일 진입점 | 5개 라우트, StripPrefix 없는 프리픽스 규약 |
+| 4 | Config 중앙화 | config-service 서빙, LLM 키는 `${LLM_API_KEY}` 환경변수 분리 |
+| 5 | OpenFeign 동기 | reco→product(상품), commerce→stock(차감·복구), product→stock(오버레이) |
+| 6 | Kafka 비동기 | commerce 행동 이벤트 3종(Avro) 발행 → reco 컨슈머 반영 |
+| 7 | 상품/주문 API + 재고 차감 | 상품 검색·비교 + 주문 생성→모의결제→취소, 결제 시 재고 차감(409) |
+| 8 | 서비스별 DB 분리·ERD | 서비스별 독립 스키마 (H2·MariaDB) |
+| 9 | Docker Compose 통합 기동 | 인프라+서비스 5종+Kafka+SR+Connect+DB 3종 |
+| 10 | **[핵심] AI 추천/상담** | 행동 가중치 추천 + LLM(gpt-4o-mini) 챗봇 + 규칙 파서 폴백, 정확도·응답시간 실측 문서화 |
 
-| 역할 | 담당 |
-|---|---|
-| PM · 프론트 · 산출물 | 백준하 |
-| 부팀장 · 인프라 + `product-service` | 김지현 |
-| `commerce-service` (회원·주문·결제·이벤트 발행) | 김도현 |
-| `recommendation-service` (추천·챗봇/AI) | 이경민 |
+### RTL-H (상 · 실시간 재고 동기화) 핵심 10
 
-인프라(Eureka·Gateway·Config·compose)는 김지현 님이 D1~D2 선행 구축, 이후 product-service 담당.
+| # | 요구사항 | 구현 |
+|---|---|---|
+| 1 | 온라인주문·재고·POS연계 등 4개 이상 | commerce(주문)·**stock(재고 독립)**·pos-sync(POS연계)·product·reco |
+| 2~4 | Eureka·Gateway·Config | 상동 |
+| 5 | OpenFeign: 주문→재고 실시간 확인 | commerce → stock-service 차감·복구 (부족 시 409 + 보상 복구) |
+| 6 | **[핵심] CDC 소스 커넥터** | Kafka Connect + Debezium(MariaDB) — 가상 POS binlog → `zeropick.pos.pos.pos_stock` |
+| 7 | 동기화 + 동시성 제어 | pos-sync 컨슈머 → 재고 원장 반영, 조건부 UPDATE + 낙관적 락(@Version) |
+| 8 | 재고/주문 ERD | stock 원장(온라인/POS 분리 컬럼) + 주문 스키마 |
+| 9 | Connect 포함 컨테이너화 | docker-compose 에 cdc-connect·pos-db·settlement-db 포함 |
+| 10 | **동기화 신뢰성** | 3회 재시도 → DLQ(`zeropick.pos.dlq`) → 재처리 리스너(멱등), JDBC Sink 로 가상 정산 DB 연동, 종단 일관성 검증 스크립트 |
 
-기획서·프로토타입(동작 데모)·산출물은 팀 공유 폴더 참고.
+### 선택 요구사항 구현 현황
+
+| 항목 | RTL-M | RTL-H | 구현 |
+|---|:-:|:-:|---|
+| Schema Registry | ✓ | ✓ | 행동 이벤트 Avro 3종 등록·발행 |
+| Circuit Breaker | ✓ | ✓ | Resilience4j — LLM 장애 시 규칙 파서 폴백 (실측 100% 전환) |
+| 추천 성과 대시보드 | ✓ | — | 클릭률·폴백률 실시간 집계 + 관리자 화면 |
+| 자연어 상품 검색 | ✓ | — | LLM 조건 추출 + 하드필터 파이프라인 |
+| 관리자 동기화 현황 화면 | — | ✓ | CDC 반영·DLQ·재처리 카운트 + 최근 이벤트 (관리자 '재고 동기화' 탭) |
+| AI 재고 예측 | — | ✓ | 주문 이벤트 기반 일 판매 속도 → 소진 임박 TOP 5 |
+| 부하 테스트 | ✓ | ✓ | k6 스크립트 + 실측 요약 (loadtest/) |
+| 모니터링 | ✓ | ✓ | Micrometer + Prometheus/Grafana 구성 (monitoring/) |
+| Spring Cloud Bus | ✓ | ✓ | bus-kafka + busrefresh (commerce) |
+| Kubernetes | ✓ | ✓ | 매니페스트 4종 (k8s/) |
+| 로그 중앙화 | ✓ | ✓ | EFK 구성 (efk/, docker-compose.efk.yml) |
+
+## 실행
+
+```bash
+# 1) 서비스 빌드 (각 모듈)
+for s in config-service service-discovery apigateway-service product-service \
+         commerce-service recommendation-service stock-service pos-sync-service; do
+  (cd $s && ./mvnw -q -DskipTests package)
+done
+
+# 2) 전체 스택 기동 (LLM 키는 선택 — 없으면 챗봇이 규칙 기반 폴백으로 동작)
+LLM_API_KEY=<키> docker compose up -d --build
+
+# 3) CDC 커넥터 등록 (Connect REST :8283)
+curl -X POST -H "Content-Type: application/json" -d @cdc/connectors/pos-source.json     http://localhost:8283/connectors
+curl -X POST -H "Content-Type: application/json" -d @cdc/connectors/settlement-sink.json http://localhost:8283/connectors
+
+# 4) 동기화 확인 — POS 재고를 바꾸면 수 초 내 재고 원장·정산 DB 에 반영된다
+docker exec pos-db mariadb -uroot -ppos1234 pos \
+  -e "UPDATE pos_stock SET stock = 7 WHERE product_id = 3;"
+curl http://localhost:8000/stock-service/stocks/3
+curl http://localhost:8000/pos-sync-service/status
+```
+
+프론트엔드: `cd frontend && npm i && npm run dev` → http://localhost:5173
+(관리자 콘솔 `/admin` — 재고 동기화 현황 탭에서 CDC 파이프라인을 실시간 확인)
+
+## 원본과의 차이
+
+- 팀 결과물: [2kmkmkm/Retail-AI-Shop](https://github.com/2kmkmkm/Retail-AI-Shop) — RTL-M 요구사항 대상, 4인 팀 개발. 원본 README 는 docs/README_원본팀.md
+- 이 저장소: 위 결과물에 재고 서비스 분리 + POS CDC 동기화(RTL-H 핵심기술)를 추가한 개인 확장판
+- 회원 인증은 데모 간소화 버전(팀 저장소의 JWT 발급 구현과 다름)

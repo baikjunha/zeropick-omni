@@ -2,34 +2,22 @@ package com.zeropick.commerceservice.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import org.hibernate.annotations.Check;
 
-@SuppressWarnings("deprecation")
-@Getter
+// 상품명·단가는 주문 시점 스냅샷 — 상품 정보가 나중에 바뀌어도 주문 내역은 불변.
 @Entity
 @Table(name = "order_item")
-@Check(constraints = "qty > 0")
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class OrderItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "order_id", nullable = false)
-    private Order order;
+    @Column(name = "order_id", nullable = false)
+    private Long orderId;
 
     @Column(name = "product_id", nullable = false)
     private Long productId;
@@ -43,15 +31,21 @@ public class OrderItem {
     @Column(name = "unit_price", nullable = false)
     private Long unitPrice;
 
-    @Builder
-    public OrderItem(Long productId, String productName, Integer qty, Long unitPrice) {
+    protected OrderItem() {
+    }
+
+    public OrderItem(Long orderId, Long productId, String productName, Integer qty, Long unitPrice) {
+        this.orderId = orderId;
         this.productId = productId;
         this.productName = productName;
         this.qty = qty;
         this.unitPrice = unitPrice;
     }
 
-    void assignOrder(Order order) {
-        this.order = order;
-    }
+    public Long getId() { return id; }
+    public Long getOrderId() { return orderId; }
+    public Long getProductId() { return productId; }
+    public String getProductName() { return productName; }
+    public Integer getQty() { return qty; }
+    public Long getUnitPrice() { return unitPrice; }
 }

@@ -21,6 +21,8 @@ import java.util.stream.Collectors;
 @Service
 public class ProductDetailService {
 
+    private final StockOverlay stockOverlay;
+
     private final ProductRepository productRepository;
     private final ProductSweetenerRepository productSweetenerRepository;
     private final ProductAllergenRepository productAllergenRepository;
@@ -29,7 +31,9 @@ public class ProductDetailService {
     public ProductDetailService(ProductRepository productRepository,
                                  ProductSweetenerRepository productSweetenerRepository,
                                  ProductAllergenRepository productAllergenRepository,
-                                 SweetenerRepository sweetenerRepository) {
+                                 SweetenerRepository sweetenerRepository,
+                                StockOverlay stockOverlay) {
+        this.stockOverlay = stockOverlay;
         this.productRepository = productRepository;
         this.productSweetenerRepository = productSweetenerRepository;
         this.productAllergenRepository = productAllergenRepository;
@@ -57,6 +61,7 @@ public class ProductDetailService {
     public ProductDetailResponse getDetail(Long id) {
         Product p = productRepository.findById(id)
                 .orElseThrow(() -> new ProductNotFoundException(id));
+        stockOverlay.overlayOne(p);
 
         List<ProductSweetener> productSweeteners = productSweetenerRepository.findAll().stream()
                 .filter(ps -> ps.getId().getProductId().equals(p.getId()))

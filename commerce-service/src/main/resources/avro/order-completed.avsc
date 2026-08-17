@@ -1,0 +1,44 @@
+{
+  "type": "record",
+  "name": "OrderCompleted",
+  "namespace": "com.zeropick.event",
+  "doc": "결제 승인(PAID) 시 주문 품목별 1건 발행. 추천 가중치 +50",
+  "fields": [
+    {
+      "name": "memberId",
+      "type": "long"
+    },
+    {
+      "name": "productId",
+      "type": "long"
+    },
+    {
+      "name": "category",
+      "type": "string",
+      "doc": "행동 시점의 상품 카테고리 (비정규화)"
+    },
+    {
+      "name": "qty",
+      "type": "int"
+    },
+    {
+      "name": "unitPrice",
+      "type": "long"
+    },
+    {
+      "name": "orderNo",
+      "type": "string"
+    },
+    {
+      "name": "paymentMethod",
+      "type": "string"
+    },
+    {
+      "name": "occurredAt",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      }
+    }
+  ]
+}

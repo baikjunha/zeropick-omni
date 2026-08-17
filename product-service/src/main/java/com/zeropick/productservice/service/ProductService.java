@@ -27,15 +27,18 @@ public class ProductService {
     private final ProductSweetenerRepository productSweetenerRepository;
     private final ProductAllergenRepository productAllergenRepository;
     private final SweetenerRepository sweetenerRepository;
+    private final StockOverlay stockOverlay;
 
     public ProductService(ProductRepository productRepository,
                            ProductSweetenerRepository productSweetenerRepository,
                            ProductAllergenRepository productAllergenRepository,
-                           SweetenerRepository sweetenerRepository) {
+                           SweetenerRepository sweetenerRepository,
+                           StockOverlay stockOverlay) {
         this.productRepository = productRepository;
         this.productSweetenerRepository = productSweetenerRepository;
         this.productAllergenRepository = productAllergenRepository;
         this.sweetenerRepository = sweetenerRepository;
+        this.stockOverlay = stockOverlay;
     }
 
     public List<ProductResponse> findProducts(String category,
@@ -63,6 +66,7 @@ public class ProductService {
                 : Specification.allOf(specs);
 
         List<Product> products = productRepository.findAll(spec);
+        stockOverlay.overlay(products);        // 재고 원장(stock-service) 값으로 덮어쓴다
         List<ProductResponse> responses = products.stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());

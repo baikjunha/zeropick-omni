@@ -1,0 +1,32 @@
+{
+  "type": "record",
+  "name": "CartAdded",
+  "namespace": "com.zeropick.event",
+  "doc": "장바구니 담기. 가중치 0 — 기록·집계용(핵심 6번 요건)",
+  "fields": [
+    {
+      "name": "memberId",
+      "type": "long"
+    },
+    {
+      "name": "productId",
+      "type": "long"
+    },
+    {
+      "name": "category",
+      "type": "string",
+      "doc": "행동 시점의 상품 카테고리 (비정규화)"
+    },
+    {
+      "name": "qty",
+      "type": "int"
+    },
+    {
+      "name": "occurredAt",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      }
+    }
+  ]
+}

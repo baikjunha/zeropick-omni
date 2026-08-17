@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 10s
+
+scrape_configs:
+  - job_name: zeropick-services
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - product-service:8081
+          - commerce-service:8082
+          - recommendation-service:8083
+        labels:
+          project: zeropick

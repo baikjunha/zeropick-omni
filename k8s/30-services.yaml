@@ -1,0 +1,140 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product-service
+  namespace: zeropick
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: product-service
+  template:
+    metadata:
+      labels:
+        app: product-service
+    spec:
+      containers:
+        - name: product-service
+          image: zeropick/product-service:local
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8081
+          env:
+            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+              value: http://service-discovery:8761/eureka
+            - name: EUREKA_INSTANCE_PREFERIPADDRESS
+              value: "true"
+            - name: SPRING_CONFIG_IMPORT
+              value: "optional:configserver:http://config-service:8888"
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              value: kafka:29092
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-service
+  namespace: zeropick
+spec:
+  selector:
+    app: product-service
+  ports:
+    - port: 8081
+      targetPort: 8081
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: commerce-service
+  namespace: zeropick
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: commerce-service
+  template:
+    metadata:
+      labels:
+        app: commerce-service
+    spec:
+      containers:
+        - name: commerce-service
+          image: zeropick/commerce-service:local
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8082
+          env:
+            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+              value: http://service-discovery:8761/eureka
+            - name: EUREKA_INSTANCE_PREFERIPADDRESS
+              value: "true"
+            - name: SPRING_CONFIG_IMPORT
+              value: "optional:configserver:http://config-service:8888"
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              value: kafka:29092
+            - name: ZEROPICK_SCHEMAREGISTRYURL
+              value: http://schema-registry:8081
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: commerce-service
+  namespace: zeropick
+spec:
+  selector:
+    app: commerce-service
+  ports:
+    - port: 8082
+      targetPort: 8082
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: recommendation-service
+  namespace: zeropick
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: recommendation-service
+  template:
+    metadata:
+      labels:
+        app: recommendation-service
+    spec:
+      containers:
+        - name: recommendation-service
+          image: zeropick/recommendation-service:local
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8083
+          env:
+            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+              value: http://service-discovery:8761/eureka
+            - name: EUREKA_INSTANCE_PREFERIPADDRESS
+              value: "true"
+            - name: SPRING_CONFIG_IMPORT
+              value: "optional:configserver:http://config-service:8888"
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              value: kafka:29092
+            - name: ZEROPICK_SCHEMAREGISTRYURL
+              value: http://schema-registry:8081
+            # LLM 키는 매니페스트에 두지 않는다:
+            # kubectl -n zeropick create secret generic zeropick-llm --from-literal=LLM_API_KEY=<키>
+            - name: LLM_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: zeropick-llm
+                  key: LLM_API_KEY
+                  optional: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: recommendation-service
+  namespace: zeropick
+spec:
+  selector:
+    app: recommendation-service
+  ports:
+    - port: 8083
+      targetPort: 8083

@@ -81,6 +81,7 @@ function AdminConsole({ onLogout }) {
           <button className={tab === 'log' ? 'on' : ''} onClick={() => setTab('log')}>📡 이벤트 로그</button>
           <div className="grp">운영</div>
           <button className={tab === 'products' ? 'on' : ''} onClick={() => setTab('products')}>📦 상품 · 재고 관리</button>
+          <button className={tab === 'sync' ? 'on' : ''} onClick={() => setTab('sync')}>🔄 재고 동기화 (CDC)</button>
           <div className="grp">계정</div>
           <button onClick={onLogout}>🚪 로그아웃</button>
         </nav>
@@ -88,7 +89,7 @@ function AdminConsole({ onLogout }) {
       </aside>
       <main className="adm-main">
         <div className="adm-top">
-          <h1>{{ stats: '성과 대시보드', log: '이벤트 로그', products: '상품 · 재고 관리' }[tab]}</h1>
+          <h1>{{ stats: '성과 대시보드', log: '이벤트 로그', products: '상품 · 재고 관리', sync: '재고 동기화 현황' }[tab]}</h1>
           <span className="live"><span className="dot" />LIVE</span>
           <div className="actions">
             {ev.some((e) => e.demo) && <button className="btn" onClick={() => { clearEvents(true); setTick((t) => t + 1) }}>예시 지우기</button>}
@@ -99,8 +100,66 @@ function AdminConsole({ onLogout }) {
           {tab === 'stats' && <Stats ev={ev} v={v} c={c} o={o} metrics={metrics} />}
           {tab === 'log' && <Log ev={ev} />}
           {tab === 'products' && <Products />}
+          {tab === 'sync' && <SyncStatus />}
         </div>
       </main>
+    </div>
+  )
+}
+
+/* ── 재고 동기화 현황 — POS CDC 파이프라인 + AI 소진 예측 ── */
+function SyncStatus() {
+  const [st, setSt] = useState(null)
+  const [fc, setFc] = useState([])
+  useEffect(() => {
+    let on = true
+    const load = async () => {
+      const [a, b] = await Promise.all([api.fetchPosSyncStatus(), api.fetchStockForecast(5)])
+      if (!on) return
+      setSt(a)
+      setFc(Array.isArray(b) ? b : [])
+    }
+    load()
+    const t = setInterval(load, 5000)
+    return () => { on = false; clearInterval(t) }
+  }, [])
+
+  return (
+    <div>
+      <div className="cards">
+        <div className="card"><div className="k">동기화 반영</div><div className="v">{st?.appliedCount ?? '—'}</div><div className="n">POS 변경 → 재고 원장</div></div>
+        <div className="card"><div className="k">DLQ 적재</div><div className="v">{st?.dlqCount ?? '—'}</div><div className="n">재시도 소진 이벤트</div></div>
+        <div className="card"><div className="k">재처리</div><div className="v">{st?.replayedCount ?? '—'}</div><div className="n">DLQ 재소비 성공</div></div>
+        <div className="card"><div className="k">마지막 반영</div><div className="v" style={{ fontSize: 15 }}>{st?.lastAppliedAt ? st.lastAppliedAt.slice(11, 19) : '—'}</div><div className="n">{st ? 'pos-sync-service 응답' : '서비스 미기동'}</div></div>
+      </div>
+
+      <div className="panel">
+        <h3>최근 동기화 이벤트</h3>
+        {(st?.recentEvents ?? []).length === 0 && <p className="empty">아직 반영된 이벤트가 없다 — POS DB 의 pos_stock 을 변경하면 여기로 흐른다</p>}
+        {(st?.recentEvents ?? []).map((e, i) => (
+          <div key={i} className="row">
+            <span>#{e.productId}</span>
+            <span>op={e.op}</span>
+            <b>POS 재고 → {e.posStock}</b>
+            <span className="dim">{String(e.at).slice(11, 19)}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="panel">
+        <h3>AI 재고 소진 예측 (소진 임박 TOP 5)</h3>
+        {fc.length === 0 && <p className="empty">주문 데이터가 쌓이면 소진 속도를 추정한다</p>}
+        {fc.map((f) => (
+          <div key={f.productId} className="row">
+            <span style={{ flex: 1 }}>{f.productName ?? `상품 #${f.productId}`}</span>
+            <span>재고 {f.onlineStock}</span>
+            <span>일 판매 {f.dailyRate}</span>
+            <b style={{ color: f.daysLeft != null && f.daysLeft < 7 ? 'var(--red)' : 'inherit' }}>
+              {f.daysLeft == null ? '충분' : `${f.daysLeft}일 남음`}
+            </b>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

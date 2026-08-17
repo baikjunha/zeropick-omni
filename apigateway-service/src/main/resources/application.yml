@@ -28,3 +28,11 @@ spring:
               uri: lb://RECOMMENDATION-SERVICE
               predicates:
                 - Path=/recommendation-service/**
+            - id: stock-service
+              uri: lb://STOCK-SERVICE
+              predicates:
+                - Path=/stock-service/**
+            - id: pos-sync-service
+              uri: lb://POS-SYNC-SERVICE
+              predicates:
+                - Path=/pos-sync-service/**

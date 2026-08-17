@@ -40,6 +40,94 @@ services:
       - SPRING_CONFIG_IMPORT=optional:configserver:http://config-service:8888
       - SPRING_APPLICATION_JSON={"eureka":{"client":{"service-url":{"defaultZone":"http://service-discovery:8761/eureka/"}}}}
 
+  commerce-service:
+    build: ./commerce-service
+    container_name: commerce-service
+    ports:
+      - "8082:8082"
+    depends_on: [service-discovery, config-service, kafka]
+    environment:
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://config-service:8888
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - ZEROPICK_SCHEMA_REGISTRY_URL=http://schema-registry:8085
+      - SPRING_APPLICATION_JSON={"eureka":{"client":{"service-url":{"defaultZone":"http://service-discovery:8761/eureka/"}}}}
+
+  recommendation-service:
+    build: ./recommendation-service
+    container_name: recommendation-service
+    ports:
+      - "8083:8083"
+    depends_on: [service-discovery, config-service, kafka, schema-registry]
+    environment:
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://config-service:8888
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - SPRING_APPLICATION_JSON={"eureka":{"client":{"service-url":{"defaultZone":"http://service-discovery:8761/eureka/"}}}}
+
+  stock-service:
+    build: ./stock-service
+    container_name: stock-service
+    ports:
+      - "8084:8084"
+    depends_on: [service-discovery, config-service]
+    environment:
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://config-service:8888
+      - SPRING_APPLICATION_JSON={"eureka":{"client":{"service-url":{"defaultZone":"http://service-discovery:8761/eureka/"}}}}
+
+  pos-sync-service:
+    build: ./pos-sync-service
+    container_name: pos-sync-service
+    ports:
+      - "8086:8086"
+    depends_on: [service-discovery, config-service, kafka]
+    environment:
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://config-service:8888
+      - KAFKA_BOOTSTRAP=kafka:29092
+      - SPRING_APPLICATION_JSON={"eureka":{"client":{"service-url":{"defaultZone":"http://service-discovery:8761/eureka/"}}}}
+
+  # ── CDC 스택 (RTL-H 핵심기술 이식) ──────────────────────────────
+  pos-db:
+    image: mariadb:11.8
+    container_name: pos-db
+    ports:
+      - "3307:3306"
+    environment:
+      - MARIADB_ROOT_PASSWORD=pos1234
+      - MARIADB_DATABASE=pos
+    command: >
+      --log-bin=binlog
+      --binlog-format=ROW
+      --server-id=184001
+    volumes:
+      - ./cdc/pos-init.sql:/docker-entrypoint-initdb.d/pos-init.sql
+
+  settlement-db:
+    image: mariadb:11.8
+    container_name: settlement-db
+    ports:
+      - "3308:3306"
+    environment:
+      - MARIADB_ROOT_PASSWORD=stl1234
+      - MARIADB_DATABASE=settlement
+    volumes:
+      - ./cdc/settlement-init.sql:/docker-entrypoint-initdb.d/settlement-init.sql
+
+  cdc-connect:
+    image: debezium/connect:2.7.3.Final
+    container_name: cdc-connect
+    depends_on: [kafka, pos-db]
+    ports:
+      - "8283:8083"
+    environment:
+      - BOOTSTRAP_SERVERS=kafka:29092
+      - GROUP_ID=cdc-connect-group
+      - CONFIG_STORAGE_TOPIC=cdc-connect-configs
+      - OFFSET_STORAGE_TOPIC=cdc-connect-offsets
+      - STATUS_STORAGE_TOPIC=cdc-connect-status
+      - CONFIG_STORAGE_REPLICATION_FACTOR=1
+      - OFFSET_STORAGE_REPLICATION_FACTOR=1
+      - STATUS_STORAGE_REPLICATION_FACTOR=1
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.1
     container_name: zookeeper

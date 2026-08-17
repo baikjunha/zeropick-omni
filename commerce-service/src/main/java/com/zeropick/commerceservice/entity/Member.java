@@ -5,22 +5,12 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
-@Getter
 @Entity
 @Table(name = "member")
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Member {
 
     @Id
@@ -36,26 +26,21 @@ public class Member {
     @Column(nullable = false, length = 40)
     private String name;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt = LocalDateTime.now();
 
-    @OneToMany(mappedBy = "member")
-    private final List<CartItem> cartItems = new ArrayList<>();
+    protected Member() {
+    }
 
-    @OneToMany(mappedBy = "member")
-    private final List<Order> orders = new ArrayList<>();
-
-    @Builder
     public Member(String email, String password, String name) {
         this.email = email;
         this.password = password;
         this.name = name;
     }
 
-    @PrePersist
-    private void prePersist() {
-        if (createdAt == null) {
-            createdAt = LocalDateTime.now();
-        }
-    }
+    public Long getId() { return id; }
+    public String getEmail() { return email; }
+    public String getPassword() { return password; }
+    public String getName() { return name; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
 }

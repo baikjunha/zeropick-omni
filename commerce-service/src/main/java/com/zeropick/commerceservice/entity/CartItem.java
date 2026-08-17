@@ -2,43 +2,25 @@ package com.zeropick.commerceservice.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import org.hibernate.annotations.Check;
 
 import java.time.LocalDateTime;
 
-@Getter
+// product_id 는 타 서비스 데이터이므로 FK 없이 값만 보관한다 (Database per Service).
 @Entity
-@Table(
-        name = "cart_item",
-        uniqueConstraints = @UniqueConstraint(
-                name = "uk_cart",
-                columnNames = {"member_id", "product_id"}
-        )
-)
-@Check(constraints = "qty > 0")
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(name = "cart_item", uniqueConstraints = @UniqueConstraint(name = "uk_cart", columnNames = {"member_id", "product_id"}))
 public class CartItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "member_id", nullable = false)
-    private Member member;
+    @Column(name = "member_id", nullable = false)
+    private Long memberId;
 
     @Column(name = "product_id", nullable = false)
     private Long productId;
@@ -46,27 +28,23 @@ public class CartItem {
     @Column(nullable = false)
     private Integer qty;
 
-    @Column(name = "added_at", nullable = false, updatable = false)
-    private LocalDateTime addedAt;
+    @Column(name = "added_at", nullable = false)
+    private LocalDateTime addedAt = LocalDateTime.now();
 
-    @Builder
-    public CartItem(Member member, Long productId, Integer qty) {
-        this.member = member;
+    protected CartItem() {
+    }
+
+    public CartItem(Long memberId, Long productId, Integer qty) {
+        this.memberId = memberId;
         this.productId = productId;
         this.qty = qty;
     }
 
-    public void changeQuantity(int qty) {
-        if (qty <= 0) {
-            throw new IllegalArgumentException("Quantity must be greater than zero");
-        }
-        this.qty = qty;
-    }
+    public Long getId() { return id; }
+    public Long getMemberId() { return memberId; }
+    public Long getProductId() { return productId; }
+    public Integer getQty() { return qty; }
+    public LocalDateTime getAddedAt() { return addedAt; }
 
-    @PrePersist
-    private void prePersist() {
-        if (addedAt == null) {
-            addedAt = LocalDateTime.now();
-        }
-    }
+    public void setQty(Integer qty) { this.qty = qty; }
 }

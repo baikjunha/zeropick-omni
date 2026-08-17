@@ -1,0 +1,23 @@
+{
+  "name": "pos-source",
+  "config": {
+    "connector.class": "io.debezium.connector.mariadb.MariaDbConnector",
+    "tasks.max": "1",
+    "database.hostname": "pos-db",
+    "database.port": "3306",
+    "database.user": "debezium",
+    "database.password": "dbz1234",
+    "database.server.id": "184001",
+    "database.ssl.mode": "disabled",
+    "topic.prefix": "zeropick.pos",
+    "database.include.list": "pos",
+    "table.include.list": "pos.pos_stock",
+    "schema.history.internal.kafka.bootstrap.servers": "kafka:29092",
+    "schema.history.internal.kafka.topic": "zeropick.pos.schema-history",
+    "snapshot.mode": "initial",
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "true",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": "true"
+  }
+}

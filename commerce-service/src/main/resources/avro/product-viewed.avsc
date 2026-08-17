@@ -1,0 +1,28 @@
+{
+  "type": "record",
+  "name": "ProductViewed",
+  "namespace": "com.zeropick.event",
+  "doc": "상품 상세 조회. 추천 가중치 +1",
+  "fields": [
+    {
+      "name": "memberId",
+      "type": "long"
+    },
+    {
+      "name": "productId",
+      "type": "long"
+    },
+    {
+      "name": "category",
+      "type": "string",
+      "doc": "행동 시점의 상품 카테고리 (비정규화)"
+    },
+    {
+      "name": "occurredAt",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      }
+    }
+  ]
+}

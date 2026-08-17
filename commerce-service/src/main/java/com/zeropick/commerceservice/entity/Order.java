@@ -1,44 +1,19 @@
 package com.zeropick.commerceservice.entity;
 
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Index;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import org.hibernate.annotations.Check;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
-@SuppressWarnings("deprecation")
-@Getter
-@Entity(name = "CommerceOrder")
-@Table(
-        name = "orders",
-        indexes = @Index(
-                name = "idx_orders_member",
-                columnList = "member_id, ordered_at"
-        )
-)
-@Check(constraints = "total_price >= 0")
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Entity
+@Table(name = "orders")
 public class Order {
+
+    public enum Status { PENDING, PAID, COMPLETED, CANCELLED }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -47,67 +22,49 @@ public class Order {
     @Column(name = "order_no", nullable = false, unique = true, length = 20)
     private String orderNo;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "member_id", nullable = false)
-    private Member member;
+    @Column(name = "member_id", nullable = false)
+    private Long memberId;
 
     @Column(name = "total_price", nullable = false)
     private Long totalPrice;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 15)
-    private OrderStatus status;
+    private String status = Status.PENDING.name();
 
     @Column(name = "payment_method", length = 20)
     private String paymentMethod;
 
-    @Column(name = "ordered_at", nullable = false, updatable = false)
-    private LocalDateTime orderedAt;
+    @Column(name = "ordered_at", nullable = false)
+    private LocalDateTime orderedAt = LocalDateTime.now();
 
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
-    private final List<OrderItem> items = new ArrayList<>();
+    protected Order() {
+    }
 
-    @Builder
-    public Order(String orderNo, Member member, Long totalPrice) {
+    public Order(String orderNo, Long memberId, Long totalPrice) {
         this.orderNo = orderNo;
-        this.member = member;
+        this.memberId = memberId;
         this.totalPrice = totalPrice;
-        this.status = OrderStatus.PENDING;
     }
 
-    public List<OrderItem> getItems() {
-        return Collections.unmodifiableList(items);
-    }
-
-    public void addItem(OrderItem item) {
-        items.add(item);
-        item.assignOrder(this);
-    }
+    public Long getId() { return id; }
+    public String getOrderNo() { return orderNo; }
+    public Long getMemberId() { return memberId; }
+    public Long getTotalPrice() { return totalPrice; }
+    public String getStatus() { return status; }
+    public String getPaymentMethod() { return paymentMethod; }
+    public LocalDateTime getOrderedAt() { return orderedAt; }
+    public LocalDateTime getPaidAt() { return paidAt; }
 
     public void markPaid(String paymentMethod) {
-        this.status = OrderStatus.PAID;
+        this.status = Status.PAID.name();
         this.paymentMethod = paymentMethod;
         this.paidAt = LocalDateTime.now();
     }
 
-    public void complete() {
-        this.status = OrderStatus.COMPLETED;
-    }
-
-    public void cancel() {
-        this.status = OrderStatus.CANCELLED;
-    }
-
-    @PrePersist
-    private void prePersist() {
-        if (status == null) {
-            status = OrderStatus.PENDING;
-        }
-        if (orderedAt == null) {
-            orderedAt = LocalDateTime.now();
-        }
+    public void markCancelled() {
+        this.status = Status.CANCELLED.name();
     }
 }
