@@ -19,13 +19,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * AI 재고 소진 예측 (RTL-H 선택 10 이식) — 행동 로그의 주문 수량으로 일 판매 속도를
- * 추정하고, 재고 원장의 현재 재고로 남은 소진 일수를 계산한다.
- *
- *   dailyRate = 누적 판매량 / 관측 일수(최소 1일)
- *   daysLeft  = 현재 온라인 재고 / dailyRate
- */
 @Slf4j
 @RestController
 @RequestMapping("/recommendation-service/stock-forecast")
@@ -43,7 +36,7 @@ public class StockForecastController {
             return List.of();
         }
 
-        Map<Long, double[]> rateByProduct = new HashMap<>();   // productId → [totalQty, dailyRate]
+        Map<Long, double[]> rateByProduct = new HashMap<>();
         LocalDateTime now = LocalDateTime.now();
         for (Object[] row : aggregates) {
             Long productId = ((Number) row[0]).longValue();

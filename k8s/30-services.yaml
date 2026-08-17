@@ -118,8 +118,6 @@ spec:
               value: kafka:29092
             - name: ZEROPICK_SCHEMAREGISTRYURL
               value: http://schema-registry:8081
-            # LLM 키는 매니페스트에 두지 않는다:
-            # kubectl -n zeropick create secret generic zeropick-llm --from-literal=LLM_API_KEY=<키>
             - name: LLM_API_KEY
               valueFrom:
                 secretKeyRef:

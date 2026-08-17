@@ -14,7 +14,7 @@ public class Sweetener {
     private String name;
 
     protected Sweetener() {
-        // JPA 기본 생성자
+
     }
 
     public Sweetener(String name) {

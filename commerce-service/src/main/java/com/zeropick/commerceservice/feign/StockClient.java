@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.Map;
 
-/** 재고 원장(stock-service) — 주문 시 재고 차감·취소 시 복구는 여기로 간다. */
 @FeignClient(name = "stock-service", path = "/stock-service/stocks")
 public interface StockClient {
 

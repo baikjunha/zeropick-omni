@@ -17,7 +17,6 @@ public class SyncStatusController {
         this.tracker = tracker;
     }
 
-    /** 재고 동기화 현황 — 관리자 화면이 폴링한다. */
     @GetMapping("/status")
     public Map<String, Object> status() {
         return tracker.snapshot();

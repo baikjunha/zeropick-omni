@@ -1,14 +1,3 @@
-# -*- coding: utf-8 -*-
-"""3종 세트 검증 — 눈이 아니라 실행으로 확인한다.
-
-A. DDL     : H2(MariaDB 모드)에서 스키마 3개 + 시드 실제 실행, 필터 쿼리 결과 대조
-B. Avro    : fastavro 로 스키마 파싱 + 샘플 레코드 직렬화 왕복
-C. OpenAPI : openapi-spec-validator 로 스펙 검증 + 필수 경로 존재 확인
-D. 정합성  : 프로토타입 JS ↔ ERD ↔ Avro ↔ OpenAPI 필드 단위 교차 대조
-E. 채점표  : RTL-M 20개 항목이 어느 산출물에서 확인되는지 문자열 검증
-
-사용법: python verify_docs.py   (docs/verify/ 에서 실행)
-"""
 import io, os, re, json, subprocess, sys, tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -28,7 +17,6 @@ def check(section, name, fn):
 
 def read(p): return io.open(p, encoding='utf-8').read()
 
-# ── A. DDL을 H2(MariaDB 모드)에서 실제 실행 ─────────────────────────
 def run_sql(scripts, query=None):
     """스키마·시드를 한 DB 세션에서 실행하고, 마지막에 검증 쿼리를 돌린다."""
     merged = "\n".join(read(os.path.join(DOCS, 'sql', s)) for s in scripts)
@@ -85,7 +73,6 @@ def d_check_constraint():
     return "CHECK 동작 (HACKED 거부됨)"
 check('A.DDL', '잘못된 주문상태 거부(CHECK)', d_check_constraint)
 
-# ── B. Avro — 파싱 + 직렬화 왕복 ─────────────────────────────────────
 import fastavro
 SAMPLES = {
  'product-viewed.avsc':  {"memberId":1,"productId":10,"category":"간식/디저트","occurredAt":1765600000000},
@@ -104,7 +91,6 @@ def avro_roundtrip(fname):
     return f"{len(schema['fields'])}필드 왕복 일치"
 for f in SAMPLES: check('B.Avro', f, lambda f=f: avro_roundtrip(f))
 
-# ── C. OpenAPI — 스펙 검증 + 필수 경로 ──────────────────────────────
 import yaml
 from openapi_spec_validator import validate as validate_openapi
 SPEC = yaml.safe_load(read(os.path.join(DOCS,'openapi','openapi.yaml')))
@@ -124,7 +110,6 @@ check('C.API', '결제 상태머신 표현', lambda:
     'PENDING' in json.dumps(SPEC['paths']['/commerce-service/orders']['post']) and
     'PAID' in json.dumps(SPEC['paths']['/commerce-service/orders/{orderId}/pay']) and 'OK')
 
-# ───── D. 시드 CSV — 형식·규모 검증 (크롤 시드 515건 체제) ─────
 import csv as _csv
 _seed_path = os.path.join(DOCS, '시드데이터_zerofinder.csv')
 if not os.path.exists(_seed_path):
@@ -149,7 +134,6 @@ else:
         return '전건 입력'
     check('D.시드', '가격 전건 입력', _d3)
 
-# ── E. 채점표 20개 항목 → 산출물 추적 ────────────────────────────────
 if not os.path.exists(PLAN):
     print('  (E. 기획서 HTML 없음 — 레포 단독 실행이면 정상, 기획서 근거는 스킵)')
     plan = None
@@ -194,7 +178,6 @@ for item, conds in RUBRIC:
         return '근거 확인'
     check('E.채점표', item, _fn)
 
-# ── 출력 ─────────────────────────────────────────────────────────────
 print()
 cur = None
 ok = fail = 0

@@ -21,7 +21,6 @@ public class RecoDetailResponse {
     private BigDecimal score;
     private String reason;
 
-    // product-service로부터 받아온 상세 정보
     private String productName;
     private String brand;
     private String category;

@@ -5,7 +5,6 @@ import { getProducts } from '../utils/productStore.js'
 import { scoreProducts } from '../utils/mock.js'
 import * as api from '../api.js'
 
-// 자연어 조건 패턴 — "말티톨 없는", "5천원 이하" 같은 질의는 자연어 검색(선택 10)으로 보낸다
 const NL_PATTERN = /없|빼|제외|이하|이상|미만|안 ?들어|아래/
 import FilterSidebar from '../components/FilterSidebar.jsx'
 import ProductCard from '../components/ProductCard.jsx'
@@ -26,12 +25,11 @@ export default function Shop() {
   })
   const [buying, setBuying] = useState(null)
 
-  // 목록 조회 — 백엔드가 있으면 서버 필터, 없으면 시드 필터 (api 폴백)
   const [nlInfo, setNlInfo] = useState(null)
   useEffect(() => {
     let alive = true
     if (q && NL_PATTERN.test(q)) {
-      // 자연어 질의 → 조건 추출 검색 (POST /recommendation-service/search)
+
       api.nlSearch(q).then((res) => {
         if (!alive || !res) return
         const ids = (res.products || []).map((x) => x.productId)
@@ -51,7 +49,6 @@ export default function Shop() {
     return () => { alive = false }
   }, [filters, prefs.banSw, q])
 
-  // 서버 추천 (GET /recommendation-service/recommendations/{memberId}) — 행동 이벤트 기반 점수
   const [serverReco, setServerReco] = useState(null)
   useEffect(() => {
     let alive = true
@@ -63,7 +60,6 @@ export default function Shop() {
     return () => { alive = false }
   }, [member])
 
-  // 추천 점수 — 정렬·배지에 사용. 서버 추천이 있으면 상위에 병합하고 나머지는 로컬 점수로 채운다.
   const scored = useMemo(() => {
     const s = scoreProducts(products, prefs)
     const local = new Map(s.map((x, i) => [x.product.id, { rank: i, score: x.score }]))
@@ -79,7 +75,6 @@ export default function Shop() {
     return new Set(ids.slice(0, 8).map(([id]) => id))
   }, [scored])
 
-  // 가격 필터 — 상품 목록 계약(GET /products)에 가격 파라미터가 없어 클라이언트에서 거른다
   const priced = useMemo(() => products.filter((p) =>
     p.price >= (Number(filters.minPrice) || 0) && p.price <= (Number(filters.maxPrice) || 999999)
   ), [products, filters.minPrice, filters.maxPrice])
@@ -118,7 +113,7 @@ export default function Shop() {
           {sorted.map((p) => (
             <ProductCard key={p.id} p={p} reco={recoTop.has(p.id)}
               onDetail={(prod) => {
-                // 추천 노출 상품 클릭 → reco_click 적재 (클릭률, 선택 6)
+
                 if (recoTop.has(prod.id)) api.postRecoClick({ memberId: member?.memberId || 1, productId: prod.id })
                 setDetail(prod)
               }}

@@ -14,7 +14,7 @@ public class ProductSweetener {
     private BigDecimal amountG;
 
     protected ProductSweetener() {
-        // JPA 기본 생성자
+
     }
 
     public ProductSweetener(Long productId, Long sweetenerId, BigDecimal amountG) {

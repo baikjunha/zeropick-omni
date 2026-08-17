@@ -1,7 +1,6 @@
 server:
   port: 8082
 
-# busrefresh 시 유레카 클라이언트 재생성 NPE 방지 — 리프레시 대상에서 제외
 eureka:
   client:
     refresh:

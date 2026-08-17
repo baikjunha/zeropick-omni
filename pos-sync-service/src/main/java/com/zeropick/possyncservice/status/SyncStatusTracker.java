@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
-/** 동기화 처리 현황 집계 — 관리자 화면(재고 동기화 현황)의 데이터 원천. */
 @Component
 public class SyncStatusTracker {
 

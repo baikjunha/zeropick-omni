@@ -11,7 +11,7 @@ public class ProductAllergenId implements Serializable {
     private String allergen;
 
     protected ProductAllergenId() {
-        // JPA 기본 생성자
+
     }
 
     public ProductAllergenId(Long productId, String allergen) {

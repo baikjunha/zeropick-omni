@@ -15,7 +15,6 @@ export default function DetailModal({ p, onClose, onBuy }) {
   const [showNutri, setShowNutri] = useState(false)
   const conflicts = p.sw.filter((s) => prefs.banSw.includes(s))
 
-  // 상세 진입 = 조회 행동 이벤트 (추천 가중치 +1)
   useEffect(() => { emit('PRODUCT_VIEWED', p) }, [p, emit])
 
   return (
@@ -23,7 +22,7 @@ export default function DetailModal({ p, onClose, onBuy }) {
       <div className="modal" style={{ maxWidth: 760 }}>
         <button className="x" onClick={onClose}>✕</button>
         <div className="dm-grid">
-          {/* 좌: 이미지 */}
+          {}
           <div>
             <div className="dm-photo">
               {p.e}
@@ -36,7 +35,7 @@ export default function DetailModal({ p, onClose, onBuy }) {
             )}
           </div>
 
-          {/* 우: 정보 */}
+          {}
           <div className="dm-info">
             <div className="dm-meta">{p.brand} · {p.cat}</div>
             <h3 className="dm-name">{p.name}</h3>
@@ -81,7 +80,7 @@ export default function DetailModal({ p, onClose, onBuy }) {
           </div>
         </div>
 
-        {/* 영양성분표 원본 (제로파인더 표시정보) */}
+        {}
         {showNutri && p.nutriImg && (
           <div className="dm-nutriimg">
             <img src={p.nutriImg} alt="영양성분표" onError={(e) => { e.target.parentNode.textContent = '성분표 이미지를 불러오지 못했어요' }} />

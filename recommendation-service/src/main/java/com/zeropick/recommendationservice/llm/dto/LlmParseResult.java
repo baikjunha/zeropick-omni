@@ -6,9 +6,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/**
- * 조건 추출 결과 및 LLM 폴백 발생 여부 전달 DTO
- */
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor

@@ -27,29 +27,18 @@ public class ChatService {
     private final BehaviorLogRepository behaviorLogRepository;
     private final MetricsService metricsService;
 
-    /**
-     * POST /chat 처리 파이프라인 (FR-10)
-     * 1) 질의 조건 추출 (LLM / Fallback)
-     * 2) Feign Client로 후보 상품 조회 (8개 파라미터 규격 일치)
-     * 3) 메모리 레벨 하드 필터링 (제외 감미료/알레르기/칼로리/가격/당류 2차 검증)
-     * 4) 회원 행동 로그 가중치 랭킹 (조회+1, 주문+50)
-     * 5) 추천 사유 및 챗봇 답변 생성
-     */
     public ChatResponse processChat(ChatRequest request) {
-        long startTime = System.currentTimeMillis(); // 응답시간 측정 시작
+        long startTime = System.currentTimeMillis();
 
         String message = request != null ? request.getMessage() : "";
         Long memberId = request != null ? request.getMemberId() : null;
 
-        // 1. 질의 파싱 (LLM or RuleBasedQueryParser fallback)
         LlmParseResult parseResult = llmQueryService.extractCondition(message);
         SearchCondition condition = parseResult.getCondition();
         boolean usedFallback = parseResult.isUsedFallback();
 
-        // 지표 카운트 누적
         metricsService.incrementChatRequest(usedFallback);
 
-        // 2. product-service 상품 목록 조회 (8개 파라미터 정합성 일치)
         List<ProductResponse> allProducts;
         try {
             allProducts = productServiceClient.getProducts(
@@ -70,50 +59,47 @@ public class ChatService {
             allProducts = Collections.emptyList();
         }
 
-        // 3. 하드 필터링 (메모리 레벨 2차 방어 검증)
         List<ProductResponse> filteredProducts = allProducts.stream()
-                // 제외 감미료 2차 방어 검증 (AI 품질 목표 위반율 0% 보장)
+
                 .filter(p -> {
                     if (condition.getSweetenerExclude() == null) return true;
                     String exclude = condition.getSweetenerExclude();
                     return p.getSweeteners() == null || !p.getSweeteners().contains(exclude);
                 })
-                // 알레르기 성분 2차 방어 검증
+
                 .filter(p -> {
                     if (condition.getAllergenExclude() == null) return true;
                     String allergen = condition.getAllergenExclude();
                     return p.getAllergens() == null || !p.getAllergens().contains(allergen);
                 })
-                // 칼로리 상한 2차 검증
+
                 .filter(p -> {
                     if (condition.getKcalMax() == null) return true;
                     return p.getKcal() != null && p.getKcal().compareTo(condition.getKcalMax()) <= 0;
                 })
-                // 가격 상한 검증
+
                 .filter(p -> {
                     if (condition.getMaxPrice() == null) return true;
                     return p.getPrice() != null && p.getPrice() <= condition.getMaxPrice();
                 })
-                // 당류 상한 검증
+
                 .filter(p -> {
                     if (condition.getSugarMax() == null) return true;
                     return p.getSugarG() != null && p.getSugarG().compareTo(condition.getSugarMax()) <= 0;
                 })
                 .toList();
 
-        // 4. 행동 로그 가중치 점수 계산 및 랭킹 정렬
         Map<Long, Double> scoreMap = calculateBehaviorScores(memberId);
 
         List<ProductResponse> rankedProducts = filteredProducts.stream()
                 .sorted((p1, p2) -> {
                     double score1 = scoreMap.getOrDefault(p1.getId(), 0.0);
                     double score2 = scoreMap.getOrDefault(p2.getId(), 0.0);
-                    return Double.compare(score2, score1); // 점수 내림차순 정렬
+                    return Double.compare(score2, score1);
                 })
                 .limit(3)
                 .toList();
 
-        // 5. 추천 상품 DTO 및 추천 사유 부여
         List<ChatResponse.ChatProductItem> recommendedItems = rankedProducts.stream()
                 .map(p -> ChatResponse.ChatProductItem.builder()
                         .productId(p.getId())
@@ -128,10 +114,9 @@ public class ChatService {
                         .build())
                 .collect(Collectors.toList());
 
-        // 6. 전체 답변 문구 생성
         String reply = generateBotReply(condition, recommendedItems, usedFallback);
 
-        long duration = System.currentTimeMillis() - startTime; // 응답시간 계산
+        long duration = System.currentTimeMillis() - startTime;
         log.info("[챗봇 응답 완료] memberId={}, 추천 건수={}, usedFallback={}, 소요시간={}ms",
                 memberId, recommendedItems.size(), usedFallback, duration);
 

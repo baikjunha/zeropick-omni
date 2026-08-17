@@ -45,7 +45,6 @@ public class OrderService {
         this.eventPublisher = eventPublisher;
     }
 
-    // 주문 생성은 PENDING 까지 — 재고 차감은 결제 시점에 한다.
     @Transactional
     public OrderResponse create(OrderCreate req) {
         long total = 0;
@@ -68,8 +67,6 @@ public class OrderService {
         return OrderResponse.of(order, items);
     }
 
-    // 결제 승인: 품목별 재고 차감(OpenFeign). 하나라도 실패하면 이미 차감한 품목을 복구하고 CANCELLED + 409.
-    // noRollbackFor: 409 를 던져도 CANCELLED 전이는 커밋되어야 한다 (롤백되면 PENDING 으로 남는 버그).
     @Transactional(noRollbackFor = ApiException.class)
     public OrderResponse pay(Long orderId, String paymentMethod) {
         Order order = find(orderId);
@@ -95,7 +92,7 @@ public class OrderService {
 
         long now = System.currentTimeMillis();
         for (OrderItem item : deducted) {
-            // 이벤트의 카테고리는 상품 스냅샷에서 — 실패해도 발행은 계속한다
+
             String category = null;
             try {
                 category = fetchProduct(item.getProductId()).category();
@@ -108,7 +105,6 @@ public class OrderService {
         return OrderResponse.of(order, items);
     }
 
-    // 주문 취소 (핵심 7 주문 CRUD): PAID 취소는 재고를 복구한다.
     @Transactional
     public OrderResponse cancel(Long orderId) {
         Order order = find(orderId);

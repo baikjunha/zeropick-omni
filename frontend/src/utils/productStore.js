@@ -1,6 +1,3 @@
-// 상품 CRUD 로컬 오버레이 — 백엔드 미가동 시 관리자 화면의 등록·수정·삭제를 반영한다.
-// 시드는 정적이므로 변경분(추가/수정/삭제)만 localStorage에 겹쳐 둔다.
-// 백엔드가 올라오면 api.js 가 실제 CRUD API를 쓰고 이 오버레이는 호출되지 않는다.
 import { seedProducts } from '../data/seed.js'
 
 const KEY = 'zp_prod_overlay'

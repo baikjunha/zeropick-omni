@@ -1,5 +1,3 @@
-// 행동 이벤트 로컬 기록 — Kafka 로 발행될 payload 와 같은 모양을 유지한다.
-// 백엔드 가동 시에는 api.postBehavior 가 함께 전송하고, 이 기록은 관리자 화면 폴백 데이터가 된다.
 const KEY = 'zp_events'
 
 export function loadEvents() {

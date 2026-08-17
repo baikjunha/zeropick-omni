@@ -23,7 +23,6 @@ public class ProductResponse {
     private Integer stock;
     private String claimType;
 
-    // 영양성분
     private BigDecimal kcal;
     private BigDecimal sugarG;
     private BigDecimal carbG;
@@ -34,7 +33,6 @@ public class ProductResponse {
     private String servingUnit;
     private String nutritionFactsUrl;
 
-    // 조인 데이터 (감미료 / 알레르기 목록)
-    private List<String> sweeteners; // 예: ["에리스리톨", "스테비아"]
-    private List<String> allergens;   // 예: ["우유", "대두"]
+    private List<String> sweeteners;
+    private List<String> allergens;
 }

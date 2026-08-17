@@ -7,7 +7,6 @@ import org.springframework.web.client.RestClient;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-// Confluent Schema Registry REST 로 스키마를 등록하고 id 를 캐시한다. (subject = <토픽>-value)
 @Component
 public class SchemaRegistryClient {
 

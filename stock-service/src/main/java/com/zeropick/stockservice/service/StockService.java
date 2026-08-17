@@ -29,10 +29,6 @@ public class StockService {
         this.productCatalogClient = productCatalogClient;
     }
 
-    /**
-     * 기동 시 카탈로그에서 재고 원장을 초기 구성한다.
-     * product-service 가 아직 안 떠 있을 수 있어 재시도 루프로 대기한다.
-     */
     @Async
     @EventListener(ApplicationReadyEvent.class)
     public void initFromCatalog() {
@@ -95,10 +91,6 @@ public class StockService {
         return get(productId);
     }
 
-    /**
-     * POS 재고 절대값 반영 — CDC 이벤트가 before/after 를 주므로 after 절대값을 쓴다.
-     * 절대값 세팅은 멱등이라 이벤트 재처리(재시도·DLQ 재소비)에도 안전하다.
-     */
     @Transactional
     public Stock applyPos(Long productId, int posStock, String storeCode) {
         Stock stock = stockRepository.findById(productId)

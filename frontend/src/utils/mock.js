@@ -1,5 +1,3 @@
-// 백엔드 미가동 시의 폴백 구현 — 시드 데이터로 계약과 같은 모양의 응답을 만든다.
-// 백엔드가 올라오면 api.js 의 tryApi 가 실제 응답을 쓰므로 이 파일은 호출되지 않는다.
 import { loadEvents } from './events.js'
 import { updateProduct, getProducts } from './productStore.js'
 
@@ -18,7 +16,7 @@ export function scoreProducts(products, prefs) {
   const banSw = prefs?.banSw || []
   const out = []
   for (const p of products) {
-    if (p.sw.some((s) => banSw.includes(s))) continue // 하드 필터 — 제외 감미료 절대 미노출
+    if (p.sw.some((s) => banSw.includes(s))) continue
     let s = beh[p.id] || 0
     const why = []
     if (beh[p.id]) why.push('행동 기반 +' + beh[p.id])
@@ -53,7 +51,6 @@ export function recommend(products) {
     .map((x, i) => ({ productId: x.product.id, rank: i + 1, score: x.score, reason: x.why.join(' · ') }))
 }
 
-/* ── 회원 (데모 저장소) ── */
 function members() { return JSON.parse(localStorage.getItem('zp_members') || '[]') }
 export function join({ name, email, password }) {
   const all = members()
@@ -71,7 +68,6 @@ export function login({ email, password }) {
   return { memberId: m.memberId, name: m.name }
 }
 
-/* ── 주문 (데모 저장소) ── */
 function orders() { return JSON.parse(localStorage.getItem('zp_orders') || '[]') }
 export function createOrder(body) {
   const all = orders()
@@ -90,7 +86,7 @@ export function payOrder(orderId, { paymentMethod }) {
   const all = orders()
   const o = all.find((x) => x.orderId === Number(orderId))
   if (o) {
-    // 결제 시점 재고 차감 — 부족하면 409 성격의 에러 (계약과 동일한 규칙)
+
     const products = getProducts()
     for (const it of o.items || []) {
       const prod = products.find((x) => x.id === it.productId)
@@ -113,7 +109,7 @@ export function cancelOrder(orderId) {
   const all = orders()
   const o = all.find((x) => x.orderId === Number(orderId))
   if (o && o.status !== 'CANCELLED') {
-    // 결제됐던 주문은 재고 복구 (계약: PAID 취소 시 재고 복구)
+
     if (o.status === 'PAID') {
       const products = getProducts()
       for (const it of o.items || []) {
@@ -128,7 +124,6 @@ export function cancelOrder(orderId) {
 }
 export function fetchOrders() { return orders().slice().reverse() }
 
-/* ── 챗봇 — 규칙 기반 조건 추출 (실서비스 폴백과 같은 발상) ── */
 const SWEETENERS = ['D-말티톨','D-소비톨액','나한과추출분말','말티톨','수크랄로스','스테비아','스테비올 배당체',
   '아라비아검','아세설팜칼륨','아스파탐','알룰로스','에리스리톨','이소말트','자일리톨','효소처리스테비아']
 
@@ -169,19 +164,18 @@ export function chat(products, message) {
   }
 }
 
-/* ── 성과 지표 ── */
 export function metrics() {
   const ev = loadEvents()
   const n = (t) => ev.filter((e) => e.type === t).length
   const v = n('PRODUCT_VIEWED'), c = n('CART_ADDED'), o = n('ORDER_COMPLETED')
   let clicks = 0
-  try { clicks = JSON.parse(localStorage.getItem('zp_reco_clicks') || '[]').length } catch { /* ignore */ }
+  try { clicks = JSON.parse(localStorage.getItem('zp_reco_clicks') || '[]').length } catch {  }
   return {
     viewed: v, cartAdded: c, ordered: o,
     conversionRate: v ? Math.round((o / v) * 1000) / 10 : 0,
     recoClicks: clicks,
     clickRate: v ? Math.round((clicks / v) * 1000) / 10 : 0,
-    fallbackRate: 100, // 폴백 모드에서는 전부 규칙 기반
+    fallbackRate: 100,
     events: ev,
   }
 }

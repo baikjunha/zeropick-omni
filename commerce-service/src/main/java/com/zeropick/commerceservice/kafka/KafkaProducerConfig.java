@@ -11,8 +11,6 @@ import org.springframework.kafka.core.KafkaTemplate;
 
 import java.util.Map;
 
-// 자동설정 KafkaTemplate 은 <Object, Object> 라 <String, byte[]> 주입이 안 돼서 명시적으로 만든다.
-// max.block.ms 를 짧게 둬서 Kafka 미기동 시 결제 API 가 블로킹되지 않게 한다.
 @Configuration
 public class KafkaProducerConfig {
 

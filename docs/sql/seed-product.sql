@@ -1,6 +1,3 @@
--- product_db 초기 시드 (시연용 더미 — 실제 시드 100개는 팀 분담 입력분으로 교체)
--- 프로토타입 ZeroPick_프로토타입.html 의 P 배열과 동일 데이터
-
 INSERT INTO sweetener (id, name) VALUES (1, 'D-말티톨');
 INSERT INTO sweetener (id, name) VALUES (2, 'D-소비톨액');
 INSERT INTO sweetener (id, name) VALUES (3, '나한과추출분말');

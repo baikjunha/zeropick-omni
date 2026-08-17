@@ -15,7 +15,6 @@ public class RecommendationController {
 
     private final RecommendationService recommendationService;
 
-    // 추천 결과 조회 (GET /recommendation-service/recommendations/{memberId})
     @GetMapping("/{memberId}")
     public ResponseEntity<List<RecoResponse>> getRecommendations(@PathVariable("memberId") Long memberId) {
         List<RecoResponse> response = recommendationService.calculateAndGetRecommendations(memberId);

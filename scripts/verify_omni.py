@@ -1,8 +1,3 @@
-# -*- coding: utf-8 -*-
-"""ZeroPick Omni 종단 검증 — RTL-M(중)·RTL-H(상) 핵심 요구 실증.
-
-전 구간 게이트웨이(:8000) 경유. Windows curl 한글 문제로 python 사용.
-"""
 import json
 import time
 import urllib.parse
@@ -10,7 +5,6 @@ import urllib.request
 
 GW = 'http://localhost:8000'
 ok = ng = 0
-
 
 def call(method, path, body=None, timeout=30):
     path = urllib.parse.quote(path, safe='/?&=:,')
@@ -24,7 +18,6 @@ def call(method, path, body=None, timeout=30):
     except urllib.error.HTTPError as e:
         return e.code, None
 
-
 def check(name, cond, detail=''):
     global ok, ng
     mark = 'PASS' if cond else 'FAIL'
@@ -32,7 +25,6 @@ def check(name, cond, detail=''):
     ok += cond
     ng += (not cond)
     print(f'  [{mark}] {name}' + (f'  — {detail}' if detail else ''), flush=True)
-
 
 print('── 1. 서비스 메시 (M1·H1: 도메인 서비스 5종)')
 import re

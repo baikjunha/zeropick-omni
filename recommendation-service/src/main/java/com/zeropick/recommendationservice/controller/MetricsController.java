@@ -14,14 +14,12 @@ public class MetricsController {
 
     private final MetricsService metricsService;
 
-    // 추천 클릭 기록 수집 (POST /recommendation-service/click)
     @PostMapping("/click")
     public ResponseEntity<Void> recordClick(@RequestBody ClickRequest request) {
         metricsService.recordClick(request);
         return ResponseEntity.ok().build();
     }
 
-    // 성과 지표 조회 (GET /recommendation-service/metrics)
     @GetMapping("/metrics")
     public ResponseEntity<MetricsResponse> getMetrics() {
         MetricsResponse response = metricsService.getMetrics();

@@ -23,9 +23,6 @@ public class MetricsService {
     private final AtomicLong totalChatRequests = new AtomicLong(0);
     private final AtomicLong fallbackRequests = new AtomicLong(0);
 
-    /**
-     * 추천 클릭 수집 (POST /recommendation-service/click)
-     */
     @Transactional
     public void recordClick(ClickRequest request) {
         if (request == null || request.getMemberId() == null || request.getProductId() == null) {
@@ -39,9 +36,6 @@ public class MetricsService {
         log.info("[추천 클릭 수집] memberId={}, productId={}", request.getMemberId(), request.getProductId());
     }
 
-    /**
-     * 챗봇 및 자연어 검색 요청 지표 카운팅
-     */
     public void incrementChatRequest(boolean usedFallback) {
         totalChatRequests.incrementAndGet();
         if (usedFallback) {
@@ -49,9 +43,6 @@ public class MetricsService {
         }
     }
 
-    /**
-     * 성과 지표 집계 (GET /recommendation-service/metrics)
-     */
     @Transactional(readOnly = true)
     public MetricsResponse getMetrics() {
         long impressions = recoResultRepository.count();

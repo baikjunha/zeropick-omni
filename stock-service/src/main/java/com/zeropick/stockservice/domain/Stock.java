@@ -8,13 +8,6 @@ import jakarta.persistence.Version;
 
 import java.time.LocalDateTime;
 
-/**
- * 재고 원장 — 재고의 단일 진실 공급원(source of truth).
- *
- * onlineStock : 온라인몰 판매 가능 재고 (주문 시 차감·취소 시 복구)
- * posStock    : 오프라인 매장 재고 (CDC 파이프라인이 절대값으로 동기화)
- * version     : 낙관적 락 — CDC 반영과 주문 차감이 동시에 들어와도 갱신 유실 방지
- */
 @Entity
 @Table(name = "stock")
 public class Stock {

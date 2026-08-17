@@ -30,22 +30,16 @@ public class RecommendationService {
     private final PreferenceRepository preferenceRepository;
     private final ProductServiceClient productServiceClient;
 
-    /**
-     * 추천 점수 계산 및 reco_result 갱신 후 상위 TOP 3 반환
-     */
     @Transactional
     public List<RecoResponse> calculateAndGetRecommendations(Long memberId) {
         long startTime = System.currentTimeMillis();
 
-        // 1. 회원의 모든 행동 로그 조회
         List<BehaviorLog> logs = behaviorLogRepository.findByMemberIdOrderByOccurredAtDesc(memberId);
 
-        // 2. 행동 로그가 없는 경우 (콜드 스타트) -> 선호도(Preference) 기반 추천 생성
         if (logs.isEmpty()) {
             return generatePreferenceBasedRecommendations(memberId);
         }
 
-        // 3. 행동 로그 기반 점수 누적 합산 및 추천 사유 생성
         Map<Long, Double> productScores = new HashMap<>();
         Map<Long, String> productReasons = new HashMap<>();
 
@@ -68,19 +62,16 @@ public class RecommendationService {
             }
         }
 
-        // 4. 점수 내림차순 정렬 후 상위 3개(TOP 3) 추출
         List<Map.Entry<Long, Double>> sortedList = productScores.entrySet().stream()
                 .filter(e -> e.getValue() > 0)
                 .sorted(Map.Entry.<Long, Double>comparingByValue().reversed())
                 .limit(3)
                 .toList();
 
-        // 행동 점수가 모두 0점인 경우에도 선호도 기반으로 추천
         if (sortedList.isEmpty()) {
             return generatePreferenceBasedRecommendations(memberId);
         }
 
-        // 5. RecoResult 엔티티 리스트 생성 및 랭킹 부여
         List<RecoResult> newResults = new ArrayList<>();
         int rank = 1;
         for (Map.Entry<Long, Double> entry : sortedList) {
@@ -93,7 +84,6 @@ public class RecommendationService {
                     .build());
         }
 
-        // 6. DB 갱신: 기존 reco_result 삭제 후 새 결과 일괄 저장
         recoResultRepository.deleteByMemberId(memberId);
         List<RecoResult> saved = recoResultRepository.saveAll(newResults);
 
@@ -105,9 +95,6 @@ public class RecommendationService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * [콜드 스타트 방어] 선호도 기반 추천 결과 생성 및 저장
-     */
     @Transactional
     public List<RecoResponse> generatePreferenceBasedRecommendations(Long memberId) {
         Optional<Preference> prefOpt = preferenceRepository.findById(memberId);
@@ -119,7 +106,6 @@ public class RecommendationService {
         if (prefOpt.isPresent()) {
             Preference pref = prefOpt.get();
 
-            // 정확한 Getter를 통해 복합키 값 추출
             if (pref.getCategories() != null && !pref.getCategories().isEmpty()) {
                 var firstCat = pref.getCategories().get(0);
                 if (firstCat != null && firstCat.getId() != null) {
@@ -162,7 +148,7 @@ public class RecommendationService {
                     .memberId(memberId)
                     .productId(p.getId())
                     .rankNo(rank++)
-                    .score(BigDecimal.valueOf(10.0)) // 기본 온보딩 추천 점수
+                    .score(BigDecimal.valueOf(10.0))
                     .reason(category != null ? "선호 카테고리(" + category + ") 맞춤 추천" : "온보딩 선호 맞춤 추천")
                     .build());
         }
@@ -172,9 +158,6 @@ public class RecommendationService {
         return saved.stream().map(RecoResponse::from).collect(Collectors.toList());
     }
 
-    /**
-     * 추천 결과에 product-service의 상품 상세 정보를 결합하여 반환 (Enrichment)
-     */
     public List<RecoDetailResponse> getDetailedRecommendations(Long memberId) {
         List<RecoResult> recoResults = recoResultRepository.findByMemberIdOrderByRankNoAsc(memberId);
         if (recoResults.isEmpty()) {

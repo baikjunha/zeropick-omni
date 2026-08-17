@@ -67,7 +67,6 @@ public class CartService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "CART_ITEM_NOT_FOUND", "없는 항목입니다"));
     }
 
-    // 이벤트 payload 의 category 는 상품 서비스에서 비정규화로 채운다. 실패해도 담기 자체는 성공시킨다.
     private void publishCartAdded(CartAdd req) {
         try {
             String category = productClient.get(req.productId()).category();

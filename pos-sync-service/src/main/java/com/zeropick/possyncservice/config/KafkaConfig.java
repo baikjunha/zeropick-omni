@@ -10,8 +10,6 @@ import org.springframework.kafka.core.KafkaTemplate;
 
 import java.util.Map;
 
-// 자동설정 KafkaTemplate 은 <Object, Object> 라 <String, String> 주입이 안 돼서 명시적으로 만든다.
-// DLQ 발행이 컨슈머 스레드를 오래 잡지 않도록 max.block.ms 를 짧게 둔다.
 @Configuration
 public class KafkaConfig {
 

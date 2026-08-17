@@ -16,10 +16,10 @@ export default function Cart() {
     if (qty <= 0) {
       const { [id]: _, ...rest } = cart
       setCart(rest)
-      api.syncCartRemove(id)          // 서버 카트에서도 제거 (베스트에포트)
+      api.syncCartRemove(id)
     } else {
       setCart({ ...cart, [id]: qty })
-      api.syncCartUpdate(id, qty)     // 서버 수량 동기화
+      api.syncCartUpdate(id, qty)
     }
   }
 

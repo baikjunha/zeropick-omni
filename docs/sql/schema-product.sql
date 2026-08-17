@@ -1,10 +1,3 @@
--- product-service : product_db (MariaDB)
--- 원칙: 감미료·알레르기는 필터 대상이므로 문자열이 아니라 조인 테이블로 둔다.
---
--- 시드 적재 정책 (시드데이터_zerofinder.csv 515건 기준):
---   kcal·sugar_g·carb_g 공란 25건 → 적재 제외 (영양정보 없는 상품을 0으로 채우지 않는다) → 490건 적재
---   claim_type 공란 54건          → NULL 유지 (원본에 없는 표기를 만들지 않는다)
-
 CREATE TABLE product (
   id                  BIGINT AUTO_INCREMENT PRIMARY KEY,
   name                VARCHAR(120) NOT NULL,
@@ -13,7 +6,7 @@ CREATE TABLE product (
   price               INT          NOT NULL CHECK (price >= 0),
   image_url           VARCHAR(255),
   stock               INT          NOT NULL DEFAULT 0 CHECK (stock >= 0),
-  claim_type          VARCHAR(20)  CHECK (claim_type IN ('무당류','저당류','무첨가당')),  -- NULL = 표기 확인 안 됨
+  claim_type          VARCHAR(20)  CHECK (claim_type IN ('무당류','저당류','무첨가당')),
   kcal                DECIMAL(7,1) NOT NULL,
   sugar_g             DECIMAL(6,2) NOT NULL,
   carb_g              DECIMAL(6,2) NOT NULL,

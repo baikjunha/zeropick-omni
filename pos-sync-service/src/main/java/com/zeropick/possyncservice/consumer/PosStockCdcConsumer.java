@@ -12,17 +12,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
-/**
- * Debezium CDC 이벤트 컨슈머 — 가상 POS 재고 변경을 재고 원장에 실시간 반영한다.
- *
- * 이벤트 봉투(JsonConverter, schemas.enable=true):
- *   { "schema": {...}, "payload": { "op": "c|u|d|r", "before": {...}, "after": {...}, "source": {...} } }
- *
- * 반영 정책:
- *  - after 의 절대값을 그대로 세팅한다 → 멱등. 스냅샷(r)·재시도·DLQ 재소비 모두 안전.
- *  - 삭제(d)는 posStock=0 처리.
- *  - 처리 실패는 3회 재시도 후 DLQ(zeropick.pos.dlq)로 보낸다 — CDC 신뢰성 요구(RTL-H #10).
- */
 @Component
 public class PosStockCdcConsumer {
 
@@ -60,7 +49,6 @@ public class PosStockCdcConsumer {
         }
     }
 
-    /** DLQ 재처리 — 운영자가 원인 해소 후 그대로 재소비하면 된다(절대값 반영이라 멱등). */
     @KafkaListener(topics = DLQ_TOPIC, groupId = "pos-sync-dlq-replayer", autoStartup = "false")
     public void onDlqReplay(String message) {
         try {
@@ -89,7 +77,7 @@ public class PosStockCdcConsumer {
 
         JsonNode after = payload.get("after");
         if (after == null || after.isNull()) {
-            return;                            // 스키마 변경 등 데이터 없는 이벤트는 무시
+            return;
         }
         long productId = after.get("product_id").asLong();
         int posStock = after.get("stock").asInt();

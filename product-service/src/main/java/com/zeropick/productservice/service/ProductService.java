@@ -66,7 +66,7 @@ public class ProductService {
                 : Specification.allOf(specs);
 
         List<Product> products = productRepository.findAll(spec);
-        stockOverlay.overlay(products);        // 재고 원장(stock-service) 값으로 덮어쓴다
+        stockOverlay.overlay(products);
         List<ProductResponse> responses = products.stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
@@ -92,7 +92,7 @@ public class ProductService {
             case "kcal" -> Comparator.comparing(ProductResponse::kcal);
             case "sugar" -> Comparator.comparing(ProductResponse::sugarG);
             case "price" -> Comparator.comparing(ProductResponse::price);
-            default -> null; // "pop"(추천순)은 recommendation-service 점수와 병합해야 하므로 여기선 처리 안 함
+            default -> null;
         };
         if (comparator == null) return responses;
         return responses.stream().sorted(comparator).collect(Collectors.toList());

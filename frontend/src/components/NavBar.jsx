@@ -5,7 +5,7 @@ import AuthModal from './AuthModal.jsx'
 
 export default function NavBar() {
   const { member, setMember, cart, prefs, showToast } = useStore()
-  const [auth, setAuth] = useState(null) // null | 'join' | 'login'
+  const [auth, setAuth] = useState(null)
   const [q, setQ] = useState('')
   const nav = useNavigate()
   const [, setParams] = useSearchParams()

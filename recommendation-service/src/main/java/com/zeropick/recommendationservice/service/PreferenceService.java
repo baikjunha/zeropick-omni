@@ -18,10 +18,9 @@ public class PreferenceService {
 
     private final PreferenceRepository preferenceRepository;
 
-    // 선호도 등록 또는 갱신
     @Transactional
     public PreferenceResponse saveOrUpdatePreference(PreferenceRequest request) {
-        // 1. 기존 선호도 조회 또는 신규 생성
+
         Preference preference = preferenceRepository.findById(request.getMemberId())
                 .orElseGet(() -> Preference.builder()
                         .memberId(request.getMemberId())
@@ -30,11 +29,9 @@ public class PreferenceService {
                         .allergens(new ArrayList<>())
                         .build());
 
-        // 2. 가격 범위 설정
         int priceMin = request.getPriceMin() != null ? request.getPriceMin() : 0;
         int priceMax = request.getPriceMax() != null ? request.getPriceMax() : 100000;
 
-        // 3. 자식 컬럼 리스트 초기화 후 재할당 (Cascade & orphanRemoval 활용)
         preference.getCategories().clear();
         if (request.getCategories() != null) {
             for (String category : request.getCategories()) {
@@ -73,7 +70,6 @@ public class PreferenceService {
             }
         }
 
-        // 4. 빌더로 덮어쓰거나 영속화
         Preference toSave = Preference.builder()
                 .memberId(preference.getMemberId())
                 .priceMin(priceMin)
@@ -88,8 +84,6 @@ public class PreferenceService {
         return PreferenceResponse.from(saved);
     }
 
-    // 선호도 조회
-    // 선호도 조회 (미등록 회원은 기본값 200 OK 반환)
     public PreferenceResponse getPreference(Long memberId) {
         Preference preference = preferenceRepository.findById(memberId)
                 .orElseGet(() -> Preference.builder()

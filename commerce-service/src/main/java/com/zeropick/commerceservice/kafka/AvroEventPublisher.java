@@ -18,8 +18,6 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
-// 행동 이벤트 3종을 Confluent wire format(매직바이트 0x0 + 스키마 id 4바이트 + Avro 바이너리)으로 발행한다.
-// Kafka·Registry 미기동 시 업무 API 를 깨지 않도록 실패는 경고 로그만 남긴다 (베스트에포트).
 @Component
 public class AvroEventPublisher {
 

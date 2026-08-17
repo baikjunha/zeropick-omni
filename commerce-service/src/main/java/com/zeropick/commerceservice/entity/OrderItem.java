@@ -7,7 +7,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-// 상품명·단가는 주문 시점 스냅샷 — 상품 정보가 나중에 바뀌어도 주문 내역은 불변.
 @Entity
 @Table(name = "order_item")
 public class OrderItem {

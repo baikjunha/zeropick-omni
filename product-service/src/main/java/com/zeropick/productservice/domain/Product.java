@@ -32,7 +32,7 @@ public class Product {
     @Column(name = "stock", nullable = false)
     private Integer stock = 0;
 
-    @Column(name = "claim_type", length = 20)  // NULL = 표기 확인 안 됨 (schema-product.sql)
+    @Column(name = "claim_type", length = 20)
     private String claimType;
 
     @Column(name = "kcal", nullable = false, precision = 7, scale = 1)
@@ -70,7 +70,7 @@ public class Product {
     private LocalDateTime createdAt;
 
     protected Product() {
-        // JPA 기본 생성자
+
     }
 
     public Product(String name, String brand, String category, Integer price,

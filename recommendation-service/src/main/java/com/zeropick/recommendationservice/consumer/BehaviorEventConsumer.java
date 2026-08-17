@@ -39,7 +39,7 @@ public class BehaviorEventConsumer {
         }
 
         try {
-            // 1. 토픽별 이벤트 타입 매핑 (이벤트스키마.md 기준)
+
             String eventType = switch (topic) {
                 case "product-viewed" -> "PRODUCT_VIEWED";
                 case "cart-added" -> "CART_ADDED";
@@ -47,19 +47,16 @@ public class BehaviorEventConsumer {
                 default -> "UNKNOWN";
             };
 
-            // 2. 공통 필드 추출 (CartAdded, OrderCompleted, ProductViewed 공통)
             Long memberId = extractLong(value, "memberId");
             Long productId = extractLong(value, "productId");
             String category = extractString(value, "category");
             LocalDateTime occurredAt = extractDateTime(value, "occurredAt");
 
-            // 3. 개별 토픽 전용 필드 추출 (cart-added: qty / order-completed: qty, unitPrice, orderNo, paymentMethod)
             Integer qty = extractInteger(value, "qty");
             Long unitPrice = extractLong(value, "unitPrice");
             String orderNo = extractString(value, "orderNo");
             String paymentMethod = extractString(value, "paymentMethod");
 
-            // 4. BehaviorLog 엔티티 생성 및 DB 적재
             BehaviorLog behaviorLog = BehaviorLog.builder()
                     .memberId(memberId)
                     .productId(productId)
@@ -77,7 +74,6 @@ public class BehaviorEventConsumer {
             log.info("[Kafka 적재 성공] topic={}, memberId={}, productId={}, eventType={}",
                     topic, memberId, productId, eventType);
 
-            // 5. 추천 점수 재계산 및 reco_result 즉시 갱신
             if (memberId != null) {
                 recommendationService.calculateAndGetRecommendations(memberId);
                 log.info("[추천 점수 갱신 완료] memberId={}", memberId);
@@ -87,7 +83,6 @@ public class BehaviorEventConsumer {
         }
     }
 
-    // --- Null-Safe GenericRecord 필드 추출 헬퍼 메서드 ---
     private Long extractLong(GenericRecord record, String fieldName) {
         if (record.getSchema().getField(fieldName) == null) return null;
         Object val = record.get(fieldName);

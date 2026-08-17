@@ -15,7 +15,7 @@ export default function CheckoutModal({ items, onClose, clearCartAfter = false }
   const pay = async () => {
     setPaying(true)
     try {
-      // 주문 생성(PENDING) → 모의 결제(PAID). 결제 시점에 백엔드가 재고를 차감한다.
+
       const order = await api.createOrder({
         memberId: member?.memberId || 1,
         items: items.map((x) => ({ productId: x.product.id, name: x.product.name, qty: x.qty, unitPrice: x.product.price })),

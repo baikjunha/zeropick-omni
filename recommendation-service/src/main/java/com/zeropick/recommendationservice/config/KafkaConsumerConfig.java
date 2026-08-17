@@ -15,10 +15,6 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Kafka Consumer 설정 클래스
- * - 추천 서비스(recommendation-service)가 Kafka 토픽의 이벤트를 수신하기 위한 컨슈머 팩토리 및 리스너 설정
- */
 @EnableKafka
 @Configuration
 public class KafkaConsumerConfig {
@@ -29,10 +25,6 @@ public class KafkaConsumerConfig {
     @Value("${spring.kafka.consumer.properties.schema.registry.url:http://localhost:8085}")
     private String schemaRegistryUrl;
 
-    /**
-     * Kafka Consumer 인스턴스를 생성하는 팩토리 빈(Bean) 등록
-     * - Key: String, Value: GenericRecord (Avro 역직렬화 결과 객체)
-     */
     @Bean
     public ConsumerFactory<String, GenericRecord> consumerFactory() {
         Map<String, Object> props = new HashMap<>();
@@ -47,10 +39,6 @@ public class KafkaConsumerConfig {
         return new DefaultKafkaConsumerFactory<>(props);
     }
 
-    /**
-     * @KafkaListener 어노테이션이 붙은 메서드들을 감지하고 동작시키는 컨테이너 팩토리 빈(Bean) 등록
-     * - 멀티스레드 기반의 메시지 소비 및 동시 처리를 지원
-     */
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, GenericRecord> kafkaListenerContainerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, GenericRecord> factory =

@@ -10,7 +10,6 @@ import jakarta.persistence.UniqueConstraint;
 
 import java.time.LocalDateTime;
 
-// product_id 는 타 서비스 데이터이므로 FK 없이 값만 보관한다 (Database per Service).
 @Entity
 @Table(name = "cart_item", uniqueConstraints = @UniqueConstraint(name = "uk_cart", columnNames = {"member_id", "product_id"}))
 public class CartItem {

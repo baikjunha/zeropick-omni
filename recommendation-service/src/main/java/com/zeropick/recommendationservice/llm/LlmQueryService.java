@@ -21,10 +21,6 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
-/**
- * LLM 기반 질의 조건 추출 서비스 + Resilience4j Circuit Breaker
- * - Spring Boot 4.0.7 / Spring 7 표준 RestClient 적용
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -42,20 +38,14 @@ public class LlmQueryService {
     @Value("${llm.api-url:https://api.openai.com/v1/chat/completions}")
     private String apiUrl;
 
-    /**
-     * 사용자 질의로부터 검색 조건 추출
-     * - Circuit Breaker 'llmService' 적용: API 실패/타임아웃 시 fallbackParseQuery 자동 실행
-     */
     @CircuitBreaker(name = "llmService", fallbackMethod = "fallbackParseQuery")
     public LlmParseResult extractCondition(String query) {
         log.info("[LLM 질의 파싱 요청] query='{}'", query);
 
-        // 키 미설정 또는 더미키 상태면 즉시 예외를 발생시켜 Fallback으로 안전 전환
         if ("dummy-key".equals(apiKey) || "dummy-key-for-test".equals(apiKey) || apiKey.isBlank()) {
             throw new IllegalStateException("LLM API Key가 설정되지 않았습니다. Fallback 파서로 전환합니다.");
         }
 
-        // 2초 타임아웃이 적용된 HTTP 클라이언트 구성
         HttpClient httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(5))
                 .build();
@@ -106,13 +96,10 @@ public class LlmQueryService {
         return LlmParseResult.of(condition, false);
     }
 
-    /**
-     * Circuit Breaker Fallback 메서드 (LLM 호출 실패 또는 서킷 OPEN 시 호출)
-     */
     public LlmParseResult fallbackParseQuery(String query, Throwable throwable) {
         log.warn("[LLM Fallback 발동] 원인: {}. 규칙 기반 파서(RuleBasedQueryParser)로 전환합니다.", throwable.getMessage());
         SearchCondition fallbackCondition = ruleBasedQueryParser.parse(query);
-        return LlmParseResult.of(fallbackCondition, true); // usedFallback = true
+        return LlmParseResult.of(fallbackCondition, true);
     }
 
     private SearchCondition parseJsonToCondition(String rawJson) {
@@ -121,8 +108,6 @@ public class LlmQueryService {
             String content = rootNode.path("choices").get(0).path("message").path("content").asText();
             JsonNode conditionJson = objectMapper.readTree(content);
 
-            // path()는 키가 없으면 MissingNode를 반환하고 isNull()이 false라서
-            // asDouble()/asInt()가 0을 만든다(maxPrice=0 → 전 상품 탈락). get() 기반 헬퍼로 방어한다.
             String category = textOrNull(conditionJson, "category");
             String sweetenerExclude = textOrNull(conditionJson, "sweetenerExclude");
             String allergenExclude = textOrNull(conditionJson, "allergenExclude");

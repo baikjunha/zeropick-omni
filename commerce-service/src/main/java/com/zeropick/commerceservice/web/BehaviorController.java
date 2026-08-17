@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
 
-// 프론트의 상품 조회 행동을 받아 Kafka 로 발행한다. 담기·주문 이벤트는 각 API 처리 중 직접 발행한다.
 @RestController
 @RequestMapping("/commerce-service/behaviors")
 public class BehaviorController {

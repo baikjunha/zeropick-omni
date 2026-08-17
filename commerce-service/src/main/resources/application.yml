@@ -22,7 +22,7 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.ByteArraySerializer
       properties:
-        max.block.ms: 1500   # Kafka 미기동 시 결제 API 가 블로킹되지 않게 짧게 둔다
+        max.block.ms: 1500
 
 zeropick:
   schema-registry-url: http://localhost:8085

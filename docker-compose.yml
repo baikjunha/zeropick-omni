@@ -86,7 +86,6 @@ services:
       - KAFKA_BOOTSTRAP=kafka:29092
       - SPRING_APPLICATION_JSON={"eureka":{"client":{"service-url":{"defaultZone":"http://service-discovery:8761/eureka/"}}}}
 
-  # ── CDC 스택 (RTL-H 핵심기술 이식) ──────────────────────────────
   pos-db:
     image: mariadb:11.8
     container_name: pos-db

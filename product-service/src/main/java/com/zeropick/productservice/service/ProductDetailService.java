@@ -52,7 +52,7 @@ public class ProductDetailService {
             try {
                 results.add(getDetail(id));
             } catch (ProductNotFoundException e) {
-                // 존재하지 않는 id는 조용히 스킵
+
             }
         }
         return results;

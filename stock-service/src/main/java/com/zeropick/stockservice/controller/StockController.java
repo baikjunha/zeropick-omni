@@ -10,9 +10,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * 재고 원장 API — 게이트웨이 StripPrefix 부재 규약에 따라 /stock-service 프리픽스 포함.
- */
 @RestController
 @RequestMapping("/stock-service/stocks")
 public class StockController {

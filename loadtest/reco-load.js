@@ -1,19 +1,16 @@
-// 선택 8: 추천 API 동시 요청 부하 테스트 (k6)
-// 실행: docker run --rm -i -v "$PWD/loadtest:/scripts" grafana/k6:0.52.0 run /scripts/reco-load.js
-//       --summary-export=/scripts/summary.json
 import http from 'k6/http'
 import { check, sleep } from 'k6'
 
 export const options = {
   stages: [
-    { duration: '20s', target: 10 },   // 워밍업
-    { duration: '30s', target: 30 },   // 증가
-    { duration: '60s', target: 30 },   // 유지 — 동시 30 사용자
+    { duration: '20s', target: 10 },
+    { duration: '30s', target: 30 },
+    { duration: '60s', target: 30 },
     { duration: '10s', target: 0 },
   ],
   thresholds: {
-    http_req_duration: ['p(95)<1000'], // p95 1초 이내
-    http_req_failed: ['rate<0.01'],    // 실패율 1% 미만
+    http_req_duration: ['p(95)<1000'],
+    http_req_failed: ['rate<0.01'],
   },
 }
 

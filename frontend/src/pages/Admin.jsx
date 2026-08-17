@@ -9,7 +9,6 @@ const TOPIC = { PRODUCT_VIEWED: 'product-viewed', CART_ADDED: 'cart-added', ORDE
 const TCLS = { PRODUCT_VIEWED: 'viewed', CART_ADDED: 'cart', ORDER_COMPLETED: 'order' }
 const COLOR = { PRODUCT_VIEWED: '#3B82F6', CART_ADDED: '#F59E0B', ORDER_COMPLETED: '#10B981' }
 
-/* 데모용 관리자 인증 — 실서비스에서는 백엔드 관리자 계정·권한으로 대체한다 */
 const ADMIN_ID = 'admin'
 const ADMIN_PW = 'zeropick5!'
 
@@ -22,7 +21,7 @@ export default function Admin() {
 }
 
 function Gate({ onPass }) {
-  // 데모 편의상 미리 채워둔다 — 실서비스 전환 시 제거
+
   const [id, setId] = useState(ADMIN_ID)
   const [pw, setPw] = useState(ADMIN_PW)
   const [err, setErr] = useState('')
@@ -54,7 +53,6 @@ function AdminConsole({ onLogout }) {
   const [tick, setTick] = useState(0)
   const [metrics, setMetrics] = useState(null)
 
-  // 3초 폴링 + storage 이벤트(다른 탭의 고객 행동) → 실시간 갱신
   useEffect(() => {
     const iv = setInterval(() => setTick((t) => t + 1), 3000)
     const onStorage = () => setTick((t) => t + 1)
@@ -65,7 +63,7 @@ function AdminConsole({ onLogout }) {
 
   const ev = useMemo(() => loadEvents(), [tick])
   const n = (t) => ev.filter((e) => e.type === t).length
-  // KPI 는 서버 지표(behavior_log 집계)를 우선 쓰고, 백엔드가 없으면 로컬 이벤트 수로 폴백한다.
+
   const v = metrics?.viewed ?? n('PRODUCT_VIEWED')
   const c = metrics?.cartAdded ?? n('CART_ADDED')
   const o = metrics?.ordered ?? n('ORDER_COMPLETED')
@@ -107,7 +105,6 @@ function AdminConsole({ onLogout }) {
   )
 }
 
-/* ── 재고 동기화 현황 — POS CDC 파이프라인 + AI 소진 예측 ── */
 function SyncStatus() {
   const [st, setSt] = useState(null)
   const [fc, setFc] = useState([])
@@ -334,12 +331,11 @@ function Log({ ev }) {
   )
 }
 
-/* ── 상품 · 재고 관리 — 핵심 7 CRUD 를 조작하는 관리자 화면 ── */
 function Products() {
   const [q, setQ] = useState('')
   const [rows, setRows] = useState(getProducts)
-  const [draft, setDraft] = useState(null)   // 등록 폼 상태 (null = 접힘)
-  const [edits, setEdits] = useState({})     // { id: { price, stock } }
+  const [draft, setDraft] = useState(null)
+  const [edits, setEdits] = useState({})
   const refresh = () => setRows(getProducts())
 
   const filtered = rows.filter((p) =>

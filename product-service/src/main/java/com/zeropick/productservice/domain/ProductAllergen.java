@@ -10,7 +10,7 @@ public class ProductAllergen {
     private ProductAllergenId id;
 
     protected ProductAllergen() {
-        // JPA 기본 생성자
+
     }
 
     public ProductAllergen(Long productId, String allergen) {

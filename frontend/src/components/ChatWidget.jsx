@@ -4,7 +4,6 @@ import * as api from '../api.js'
 import DetailModal from './DetailModal.jsx'
 import CheckoutModal from './CheckoutModal.jsx'
 
-// 전부 실데이터로 결과가 나오는 것을 확인한 질의만 노출한다 (0건 예시는 데모를 깬다)
 const SUGGESTS = ['말티톨 없는 제로 초콜릿', '아스파탐 안 들어간 콜라', '1만원 이하 저당 아이스크림']
 
 export default function ChatWidget() {
@@ -29,8 +28,6 @@ export default function ChatWidget() {
     setMsgs((m) => [...m, { role: 'bot', text: res.reply, products: res.products, usedFallback: res.usedFallback }])
   }
 
-  // 챗 결과 카드에는 id·이름·가격뿐이라, 상세 모달은 단건 조회로 전체 정보를 가져온다.
-  // 제품 검색과 같은 상세 모달을 띄운다 — 담기·주문은 모달 안에서 진행한다.
   const openDetail = async (p) => {
     const full = await api.fetchProduct(p.productId).catch(() => null)
     setDetail(full || { id: p.productId, name: p.name, price: p.price, brand: '', cat: '', stock: 0, kcal: 0, sugar: 0, sw: [] })

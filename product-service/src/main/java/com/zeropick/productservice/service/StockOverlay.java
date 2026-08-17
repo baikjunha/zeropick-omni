@@ -10,13 +10,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * 상품 응답의 stock 값을 재고 원장(stock-service)의 온라인 재고로 덮어쓴다.
- *
- * stock-service 가 아직 준비 전이거나 장애일 때는 시드 시점의 자체 컬럼 값을
- * 그대로 둔다(폴백). stock-service 의 최초 원장 구성도 이 폴백 경로를 통해
- * 시드 재고를 읽어가므로 기동 순환 의존이 생기지 않는다.
- */
 @Component
 public class StockOverlay {
 
@@ -42,7 +35,7 @@ public class StockOverlay {
             for (Product p : products) {
                 Integer stock = online.get(p.getId());
                 if (stock != null) {
-                    p.setStock(stock);          // 조회 전용 경로 — 트랜잭션 밖(detached)이라 DB 반영 없음
+                    p.setStock(stock);
                 }
             }
         } catch (Exception e) {

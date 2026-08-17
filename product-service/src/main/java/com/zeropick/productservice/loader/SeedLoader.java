@@ -84,7 +84,6 @@ public class SeedLoader implements ApplicationRunner {
                         continue;
                     }
 
-                    // 표기가 확인되지 않은 상품은 null 로 둔다 (schema-product.sql: NULL 허용)
                     String claimType = emptyToNull(record.get("claim_type"));
 
                     Product product = new Product(
@@ -177,7 +176,7 @@ public class SeedLoader implements ApplicationRunner {
                 try {
                     map.put(kv[0].trim(), new BigDecimal(kv[1].trim()));
                 } catch (NumberFormatException ignored) {
-                    // 값 파싱 실패 시 그냥 amount 없이 진행
+
                 }
             }
         }

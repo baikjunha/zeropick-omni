@@ -11,7 +11,7 @@ public class ProductSweetenerId implements Serializable {
     private Long sweetenerId;
 
     protected ProductSweetenerId() {
-        // JPA 기본 생성자
+
     }
 
     public ProductSweetenerId(Long productId, Long sweetenerId) {
