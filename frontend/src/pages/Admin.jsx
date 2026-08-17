@@ -126,31 +126,31 @@ function SyncStatus() {
 
   return (
     <div>
-      <div className="cards">
-        <div className="card"><div className="k">동기화 반영</div><div className="v">{st?.appliedCount ?? '—'}</div><div className="n">POS 변경 → 재고 원장</div></div>
-        <div className="card"><div className="k">DLQ 적재</div><div className="v">{st?.dlqCount ?? '—'}</div><div className="n">재시도 소진 이벤트</div></div>
-        <div className="card"><div className="k">재처리</div><div className="v">{st?.replayedCount ?? '—'}</div><div className="n">DLQ 재소비 성공</div></div>
-        <div className="card"><div className="k">마지막 반영</div><div className="v" style={{ fontSize: 15 }}>{st?.lastAppliedAt ? st.lastAppliedAt.slice(11, 19) : '—'}</div><div className="n">{st ? 'pos-sync-service 응답' : '서비스 미기동'}</div></div>
+      <div className="kpis">
+        <div className="kpi"><div className="t">동기화 반영</div><div className="v">{st?.appliedCount ?? '—'}</div><div className="s">POS 변경 → 재고 원장</div></div>
+        <div className="kpi"><div className="t">DLQ 적재</div><div className="v">{st?.dlqCount ?? '—'}</div><div className="s">재시도 소진 이벤트</div></div>
+        <div className="kpi"><div className="t">재처리</div><div className="v">{st?.replayedCount ?? '—'}</div><div className="s">DLQ 재소비 성공</div></div>
+        <div className="kpi"><div className="t">마지막 반영</div><div className="v" style={{ fontSize: 18 }}>{st?.lastAppliedAt ? st.lastAppliedAt.slice(11, 19) : '—'}</div><div className="s">{st ? 'pos-sync-service 응답' : '서비스 미기동'}</div></div>
       </div>
 
-      <div className="panel">
+      <div className="acard" style={{ marginTop: 14, padding: 18 }}>
         <h3>최근 동기화 이벤트</h3>
-        {(st?.recentEvents ?? []).length === 0 && <p className="empty">아직 반영된 이벤트가 없다 — POS DB 의 pos_stock 을 변경하면 여기로 흐른다</p>}
+        {(st?.recentEvents ?? []).length === 0 && <p style={{ color: 'var(--muted)', fontSize: 13 }}>아직 반영된 이벤트가 없다 — POS DB 의 pos_stock 을 변경하면 여기로 흐른다</p>}
         {(st?.recentEvents ?? []).map((e, i) => (
-          <div key={i} className="row">
+          <div key={i} style={{ display: 'flex', gap: 14, padding: '7px 0', borderBottom: '1px solid var(--line)', fontSize: 13.5, alignItems: 'center' }}>
             <span>#{e.productId}</span>
             <span>op={e.op}</span>
             <b>POS 재고 → {e.posStock}</b>
-            <span className="dim">{String(e.at).slice(11, 19)}</span>
+            <span style={{ color: 'var(--faint)', marginLeft: 'auto' }}>{String(e.at).slice(11, 19)}</span>
           </div>
         ))}
       </div>
 
-      <div className="panel">
+      <div className="acard" style={{ marginTop: 14, padding: 18 }}>
         <h3>AI 재고 소진 예측 (소진 임박 TOP 5)</h3>
-        {fc.length === 0 && <p className="empty">주문 데이터가 쌓이면 소진 속도를 추정한다</p>}
+        {fc.length === 0 && <p style={{ color: 'var(--muted)', fontSize: 13 }}>주문 데이터가 쌓이면 소진 속도를 추정한다</p>}
         {fc.map((f) => (
-          <div key={f.productId} className="row">
+          <div key={f.productId} style={{ display: 'flex', gap: 14, padding: '7px 0', borderBottom: '1px solid var(--line)', fontSize: 13.5, alignItems: 'center' }}>
             <span style={{ flex: 1 }}>{f.productName ?? `상품 #${f.productId}`}</span>
             <span>재고 {f.onlineStock}</span>
             <span>일 판매 {f.dailyRate}</span>

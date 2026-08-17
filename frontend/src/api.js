@@ -217,8 +217,8 @@ export const syncCartRemove = (cartItemId) =>
 
 // 재고 동기화 현황 (CDC 파이프라인) — 관리자 동기화 탭이 폴링한다
 export const fetchPosSyncStatus = () =>
-  api.get('/pos-sync-service/status').catch(() => null)
+  api.get('/pos-sync-service/status').then((r) => r.data).catch(() => null)
 
 // AI 재고 소진 예측 — 소진 임박 상품 TOP N
 export const fetchStockForecast = (limit = 5) =>
-  api.get(`/recommendation-service/stock-forecast?limit=${limit}`).catch(() => [])
+  api.get(`/recommendation-service/stock-forecast?limit=${limit}`).then((r) => r.data).catch(() => [])

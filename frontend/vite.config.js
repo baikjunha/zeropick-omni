@@ -12,6 +12,8 @@ export default defineConfig({
       '/product-service': { target: 'http://localhost:8000', changeOrigin: true },
       '/commerce-service': { target: 'http://localhost:8000', changeOrigin: true },
       '/recommendation-service': { target: 'http://localhost:8000', changeOrigin: true },
+      '/stock-service': { target: 'http://localhost:8000', changeOrigin: true },
+      '/pos-sync-service': { target: 'http://localhost:8000', changeOrigin: true },
     },
   },
 })
