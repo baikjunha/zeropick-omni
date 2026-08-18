@@ -201,5 +201,8 @@ export const fetchStocks = (ids) =>
 export const syncStockLedger = () =>
   api.post('/stock-service/stocks/sync').then((r) => r.data).catch(() => null)
 
+export const posTerminalSet = (productId, stock) =>
+  api.put(`/pos-sync-service/pos-terminal/${productId}`, { stock }).then((r) => r.data)
+
 export const fetchStockForecast = (limit = 5) =>
   api.get(`/recommendation-service/stock-forecast?limit=${limit}`).then((r) => r.data).catch(() => [])

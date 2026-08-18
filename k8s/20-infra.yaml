@@ -54,8 +54,8 @@ spec:
           ports:
             - containerPort: 8888
           env:
-            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
-              value: http://service-discovery:8761/eureka
+            - name: SPRING_APPLICATION_JSON
+              value: '{"eureka":{"client":{"service-url":{"defaultZone":"http://service-discovery:8761/eureka/"}},"instance":{"prefer-ip-address":true}}}'
 ---
 apiVersion: v1
 kind: Service
@@ -91,8 +91,8 @@ spec:
           ports:
             - containerPort: 8000
           env:
-            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
-              value: http://service-discovery:8761/eureka
+            - name: SPRING_APPLICATION_JSON
+              value: '{"eureka":{"client":{"service-url":{"defaultZone":"http://service-discovery:8761/eureka/"}},"instance":{"prefer-ip-address":true}}}'
 ---
 apiVersion: v1
 kind: Service

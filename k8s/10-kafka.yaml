@@ -69,6 +69,7 @@ spec:
       labels:
         app: schema-registry
     spec:
+      enableServiceLinks: false
       containers:
         - name: schema-registry
           image: confluentinc/cp-schema-registry:7.7.1

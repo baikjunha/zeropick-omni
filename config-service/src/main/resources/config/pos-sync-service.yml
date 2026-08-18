@@ -2,6 +2,14 @@ server:
   port: 8086
 
 spring:
+  datasource:
+    url: jdbc:mariadb://${POS_DB_HOST:localhost}:${POS_DB_PORT:3307}/pos
+    username: root
+    password: pos1234
+    hikari:
+      initialization-fail-timeout: -1
+      connection-timeout: 3000
+      maximum-pool-size: 2
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
     consumer:

@@ -26,4 +26,4 @@ curl http://localhost:30800/product-service/products   # NodePort 게이트웨�
 
 CDC 인프라(pos-db, settlement-db, cdc-connect)는 `40-cdc.yaml` 에 포함된다.
 커넥터 등록은 compose 때와 같이 cdc-connect 서비스(:8083)에 REST 로 수행한다.
-매니페스트는 작성 완료 상태이며, 로컬 클러스터 배포 검증은 아직 수행하지 않았다.
+minikube(docker driver) 로컬 클러스터에서 배포 검증 완료 — 13파드 Running, 게이트웨이 경유 상품 2,239건 응답. 유레카 주소는 맵 키 대소문자 문제로 env 대신 SPRING_APPLICATION_JSON 으로 주입하고, schema-registry 는 enableServiceLinks: false 가 필수(서비스 링크 env SCHEMA_REGISTRY_PORT 충돌).

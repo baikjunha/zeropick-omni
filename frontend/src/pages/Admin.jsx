@@ -108,6 +108,18 @@ function AdminConsole({ onLogout }) {
 function SyncStatus() {
   const [st, setSt] = useState(null)
   const [fc, setFc] = useState([])
+  const [posId, setPosId] = useState(3)
+  const [posQty, setPosQty] = useState(500)
+  const [posMsg, setPosMsg] = useState('')
+  const sendPos = async () => {
+    setPosMsg('POS 단말 전송 중...')
+    try {
+      await api.posTerminalSet(Number(posId), Number(posQty))
+      setPosMsg(`POS DB 반영 완료 — binlog를 타고 몇 초 안에 아래 이벤트로 나타난다`)
+    } catch (e) {
+      setPosMsg('전송 실패 — pos-sync 서비스 상태를 확인하세요')
+    }
+  }
   useEffect(() => {
     let on = true
     const load = async () => {
@@ -128,6 +140,25 @@ function SyncStatus() {
         <div className="kpi"><div className="t">DLQ 적재</div><div className="v">{st?.dlqCount ?? '—'}</div><div className="s">재시도 소진 이벤트</div></div>
         <div className="kpi"><div className="t">재처리</div><div className="v">{st?.replayedCount ?? '—'}</div><div className="s">DLQ 재소비 성공</div></div>
         <div className="kpi"><div className="t">마지막 반영</div><div className="v" style={{ fontSize: 18 }}>{st?.lastAppliedAt ? st.lastAppliedAt.slice(11, 19) : '—'}</div><div className="s">{st ? 'pos-sync-service 응답' : '서비스 미기동'}</div></div>
+      </div>
+
+      <div className="acard" style={{ marginTop: 14, padding: 18 }}>
+        <h3>가상 POS 단말 (CDC 시연)</h3>
+        <p style={{ color: 'var(--muted)', fontSize: 12.5, margin: '4px 0 10px' }}>
+          오프라인 매장의 POS가 재고를 바꾸는 상황을 재현한다. 아래 버튼은 서비스 API가 아니라
+          <b> 가상 POS DB를 직접 UPDATE</b>하고, 그 변경이 binlog → Debezium → Kafka → 재고 원장으로 흐른다.
+        </p>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12.5, fontWeight: 700 }}>상품 ID</span>
+          <input className="au num" type="number" style={{ width: 80, padding: '6px 10px', fontSize: 13 }}
+            value={posId} onChange={(e) => setPosId(e.target.value)} />
+          <span style={{ fontSize: 12.5, fontWeight: 700 }}>POS 재고</span>
+          <input className="au num" type="number" style={{ width: 90, padding: '6px 10px', fontSize: 13 }}
+            value={posQty} onChange={(e) => setPosQty(e.target.value)} />
+          <button className="btn" style={{ background: 'var(--primary)', color: '#fff', border: 'none' }}
+            onClick={sendPos}>POS 단말에서 재고 변경</button>
+          {posMsg && <span style={{ fontSize: 12, color: 'var(--muted)' }}>{posMsg}</span>}
+        </div>
       </div>
 
       <div className="acard" style={{ marginTop: 14, padding: 18 }}>

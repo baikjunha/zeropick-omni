@@ -78,7 +78,7 @@ POS 재고(CDC 동기화)를 한 원장에서 관리하고, 조건부 UPDATE + �
 | 로그 중앙화 | ✓ | ✓ | Fluent Bit 테일 → Elasticsearch(zeropick-logs) → Kibana (docker-compose.efk.yml) |
 | CI/CD | ✓ | ✓ | GitHub Actions — 서비스 8종 매트릭스 빌드·테스트 + 도커 이미지 빌드 + 프론트 빌드 (.github/workflows/ci.yml) |
 | Spring Cloud Bus | ✓ | ✓ | bus-kafka + commerce busrefresh 노출 (검증 스크립트 10번 항목) |
-| Kubernetes | 부분 | 부분 | 전 스택 매니페스트 작성 (k8s/, CDC 인프라 포함). 로컬 클러스터 배포 검증은 미실시 |
+| Kubernetes | ✓ | ✓ | 전 스택 매니페스트(k8s/, CDC 인프라 포함) → minikube 로컬 클러스터 배포 검증 완료 (13파드 Running, 게이트웨이 경유 상품 2,239건 응답) |
 
 ## 실행
 

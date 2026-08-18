@@ -80,10 +80,12 @@ services:
     container_name: pos-sync-service
     ports:
       - "8086:8086"
-    depends_on: [service-discovery, config-service, kafka]
+    depends_on: [service-discovery, config-service, kafka, pos-db]
     environment:
       - SPRING_CONFIG_IMPORT=optional:configserver:http://config-service:8888
       - KAFKA_BOOTSTRAP=kafka:29092
+      - POS_DB_HOST=pos-db
+      - POS_DB_PORT=3306
       - SPRING_APPLICATION_JSON={"eureka":{"client":{"service-url":{"defaultZone":"http://service-discovery:8761/eureka/"}}}}
 
   pos-db:
