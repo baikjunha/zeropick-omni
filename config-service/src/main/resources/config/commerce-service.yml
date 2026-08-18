@@ -5,3 +5,9 @@ eureka:
   client:
     refresh:
       enable: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,busrefresh

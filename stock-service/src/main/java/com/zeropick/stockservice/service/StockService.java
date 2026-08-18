@@ -35,22 +35,9 @@ public class StockService {
         for (int attempt = 1; attempt <= INIT_MAX_RETRY; attempt++) {
             try {
                 List<Map<String, Object>> products = productCatalogClient.getAllProducts();
-                int created = 0;
-                int filled = 0;
-                for (Map<String, Object> p : products) {
-                    long productId = ((Number) p.get("id")).longValue();
-                    int seedStock = p.get("stock") == null ? 0 : ((Number) p.get("stock")).intValue();
-                    Stock existing = stockRepository.findById(productId).orElse(null);
-                    if (existing == null) {
-                        stockRepository.save(new Stock(productId, seedStock));
-                        created++;
-                    } else if (existing.getOnlineStock() == 0 && seedStock > 0) {
-                        stockRepository.restore(productId, seedStock);
-                        filled++;
-                    }
-                }
+                int[] counts = applyCatalog(products);
                 log.info("[재고 초기화] 카탈로그 {}건 — 신규 {}, 보충 {}",
-                        products.size(), created, filled);
+                        products.size(), counts[0], counts[1]);
                 return;
             } catch (Exception e) {
                 log.warn("[재고 초기화] product-service 대기 중 ({}/{}) — {}",
@@ -64,6 +51,33 @@ public class StockService {
             }
         }
         log.error("[재고 초기화] product-service 응답 없음 — 초기화 포기 (수동 재기동 필요)");
+    }
+
+    @Transactional
+    public Map<String, Integer> syncFromCatalog() {
+        List<Map<String, Object>> products = productCatalogClient.getAllProducts();
+        int[] counts = applyCatalog(products);
+        log.info("[재고 동기화] 카탈로그 {}건 — 신규 {}, 보충 {}",
+                products.size(), counts[0], counts[1]);
+        return Map.of("total", products.size(), "created", counts[0], "refilled", counts[1]);
+    }
+
+    private int[] applyCatalog(List<Map<String, Object>> products) {
+        int created = 0;
+        int filled = 0;
+        for (Map<String, Object> p : products) {
+            long productId = ((Number) p.get("id")).longValue();
+            int seedStock = p.get("stock") == null ? 0 : ((Number) p.get("stock")).intValue();
+            Stock existing = stockRepository.findById(productId).orElse(null);
+            if (existing == null) {
+                stockRepository.save(new Stock(productId, seedStock));
+                created++;
+            } else if (existing.getOnlineStock() == 0 && seedStock > 0) {
+                stockRepository.restore(productId, seedStock);
+                filled++;
+            }
+        }
+        return new int[]{created, filled};
     }
 
     public Stock get(Long productId) {

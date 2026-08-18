@@ -30,6 +30,11 @@ public class StockController {
         return stockService.getAll(ids).stream().map(StockResponse::from).toList();
     }
 
+    @PostMapping("/sync")
+    public java.util.Map<String, Integer> sync() {
+        return stockService.syncFromCatalog();
+    }
+
     @PutMapping("/{productId}/deduct")
     public StockResponse deduct(@PathVariable Long productId, @Valid @RequestBody QtyRequest request) {
         return StockResponse.from(stockService.deduct(productId, request.qty()));

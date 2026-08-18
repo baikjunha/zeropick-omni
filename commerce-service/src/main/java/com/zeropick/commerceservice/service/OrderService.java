@@ -51,6 +51,7 @@ public class OrderService {
         List<ProductInfo> snapshots = new ArrayList<>();
         for (OrderCreateItem item : req.items()) {
             ProductInfo info = fetchProduct(item.productId());
+            checkAvailability(item, info);
             snapshots.add(info);
             total += (long) info.price() * item.qty();
         }
@@ -129,6 +130,23 @@ public class OrderService {
     private Order find(Long orderId) {
         return orderRepository.findById(orderId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ORDER_NOT_FOUND", "없는 주문입니다"));
+    }
+
+    private void checkAvailability(OrderCreateItem item, ProductInfo info) {
+        Integer available;
+        try {
+            available = stockClient.get(item.productId()).onlineStock();
+        } catch (FeignException.NotFound e) {
+            available = info.stock();
+        } catch (Exception e) {
+            log.warn("재고 확인 실패 productId={} — 결제 시 차감으로 최종 방어: {}",
+                    item.productId(), e.getMessage());
+            return;
+        }
+        if (available == null || available < item.qty()) {
+            throw new ApiException(HttpStatus.CONFLICT, "INSUFFICIENT_STOCK",
+                    "주문 가능 재고 부족: " + info.name() + " (가용 " + available + ", 요청 " + item.qty() + ")");
+        }
     }
 
     private ProductInfo fetchProduct(Long productId) {

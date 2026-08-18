@@ -1,6 +1,7 @@
 package com.zeropick.commerceservice.feign;
 
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -9,6 +10,9 @@ import java.util.Map;
 
 @FeignClient(name = "stock-service", path = "/stock-service/stocks")
 public interface StockClient {
+
+    @GetMapping("/{id}")
+    StockInfo get(@PathVariable("id") Long id);
 
     @PutMapping("/{id}/deduct")
     StockInfo deduct(@PathVariable("id") Long id, @RequestBody Map<String, Integer> body);
