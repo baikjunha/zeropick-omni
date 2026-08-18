@@ -1,0 +1,177 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pos-init-sql
+  namespace: zeropick
+data:
+  pos-init.sql: |
+    CREATE TABLE IF NOT EXISTS pos_stock (
+        product_id   BIGINT PRIMARY KEY,
+        store_code   VARCHAR(10) NOT NULL DEFAULT 'GANGNAM01',
+        stock        INT NOT NULL,
+        updated_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    );
+    INSERT INTO pos_stock (product_id, store_code, stock) VALUES
+        (1, 'GANGNAM01', 30),
+        (2, 'GANGNAM01', 25),
+        (3, 'GANGNAM01', 40),
+        (4, 'GANGNAM01', 12),
+        (5, 'GANGNAM01', 55);
+    CREATE USER IF NOT EXISTS 'debezium'@'%' IDENTIFIED BY 'dbz1234';
+    GRANT SELECT, RELOAD, SHOW DATABASES, REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO 'debezium'@'%';
+    FLUSH PRIVILEGES;
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: settlement-init-sql
+  namespace: zeropick
+data:
+  settlement-init.sql: |
+    CREATE TABLE IF NOT EXISTS pos_stock_ledger (
+        product_id  BIGINT PRIMARY KEY,
+        store_code  VARCHAR(20),
+        stock       INT,
+        updated_at  VARCHAR(64) NULL
+    );
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pos-db
+  namespace: zeropick
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pos-db
+  template:
+    metadata:
+      labels:
+        app: pos-db
+    spec:
+      containers:
+        - name: pos-db
+          image: mariadb:11.8
+          args: ["--log-bin=binlog", "--binlog-format=ROW", "--server-id=184001"]
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MARIADB_ROOT_PASSWORD
+              value: pos1234
+            - name: MARIADB_DATABASE
+              value: pos
+          volumeMounts:
+            - name: init-sql
+              mountPath: /docker-entrypoint-initdb.d
+      volumes:
+        - name: init-sql
+          configMap:
+            name: pos-init-sql
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pos-db
+  namespace: zeropick
+spec:
+  selector:
+    app: pos-db
+  ports:
+    - port: 3306
+      targetPort: 3306
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: settlement-db
+  namespace: zeropick
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: settlement-db
+  template:
+    metadata:
+      labels:
+        app: settlement-db
+    spec:
+      containers:
+        - name: settlement-db
+          image: mariadb:11.8
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MARIADB_ROOT_PASSWORD
+              value: stl1234
+            - name: MARIADB_DATABASE
+              value: settlement
+          volumeMounts:
+            - name: init-sql
+              mountPath: /docker-entrypoint-initdb.d
+      volumes:
+        - name: init-sql
+          configMap:
+            name: settlement-init-sql
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: settlement-db
+  namespace: zeropick
+spec:
+  selector:
+    app: settlement-db
+  ports:
+    - port: 3306
+      targetPort: 3306
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cdc-connect
+  namespace: zeropick
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cdc-connect
+  template:
+    metadata:
+      labels:
+        app: cdc-connect
+    spec:
+      containers:
+        - name: cdc-connect
+          image: debezium/connect:2.7.3.Final
+          ports:
+            - containerPort: 8083
+          env:
+            - name: BOOTSTRAP_SERVERS
+              value: kafka:29092
+            - name: GROUP_ID
+              value: cdc-connect-group
+            - name: CONFIG_STORAGE_TOPIC
+              value: cdc-connect-configs
+            - name: OFFSET_STORAGE_TOPIC
+              value: cdc-connect-offsets
+            - name: STATUS_STORAGE_TOPIC
+              value: cdc-connect-status
+            - name: CONFIG_STORAGE_REPLICATION_FACTOR
+              value: "1"
+            - name: OFFSET_STORAGE_REPLICATION_FACTOR
+              value: "1"
+            - name: STATUS_STORAGE_REPLICATION_FACTOR
+              value: "1"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cdc-connect
+  namespace: zeropick
+spec:
+  selector:
+    app: cdc-connect
+  ports:
+    - port: 8083
+      targetPort: 8083

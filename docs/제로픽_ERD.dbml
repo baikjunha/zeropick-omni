@@ -135,3 +135,26 @@ Table reco_click {
   product_id bigint [not null]
   clicked_at timestamp [not null, note: '선택 6번 클릭률 집계']
 }
+
+Table stock {
+  product_id bigint [pk, note: 'stock-service 원장 (독립 DB) — 상품 ID가 원장 키']
+  online_stock int [not null, note: '온라인 판매 가용 재고 — 결제 시 조건부 UPDATE 차감']
+  pos_stock int [not null, note: 'POS(오프라인) 재고 — CDC 이벤트 절대값 반영(멱등)']
+  store_code varchar(20)
+  version bigint [not null, note: '낙관적 락(@Version)']
+  updated_at timestamp
+}
+
+Table pos_stock {
+  product_id bigint [pk, note: '가상 POS DB(MariaDB, binlog) — Debezium 소스 캡처 대상']
+  store_code varchar(10) [not null]
+  stock int [not null]
+  updated_at timestamp [not null]
+}
+
+Table pos_stock_ledger {
+  product_id bigint [pk, note: '가상 정산 DB — Kafka Connect JDBC Sink 반영']
+  store_code varchar(20)
+  stock int
+  updated_at varchar(64) [note: 'Sink 자동 매핑 제약으로 문자열 보관']
+}

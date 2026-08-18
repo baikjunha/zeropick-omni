@@ -41,12 +41,12 @@ POS 재고(CDC 동기화)를 한 원장에서 관리하고, 조건부 UPDATE + �
 | 2 | Eureka | 전 서비스 등록 |
 | 3 | Gateway 단일 진입점 | 5개 라우트, StripPrefix 없는 프리픽스 규약 |
 | 4 | Config 중앙화 | config-service 서빙, LLM 키는 `${LLM_API_KEY}` 환경변수 분리 |
-| 5 | OpenFeign 동기 | reco→product(상품), commerce→stock(차감·복구), product→stock(오버레이) |
+| 5 | OpenFeign 동기 | reco→product(상품), commerce→stock(확인·차감·복구), product→stock(오버레이) |
 | 6 | Kafka 비동기 | commerce 행동 이벤트 3종(Avro) 발행 → reco 컨슈머 반영 |
-| 7 | 상품/주문 API + 재고 차감 | 상품 검색·비교 + 주문 생성→모의결제→취소, 결제 시 재고 차감(409) |
-| 8 | 서비스별 DB 분리·ERD | 서비스별 독립 스키마 (H2·MariaDB) |
+| 7 | 상품/주문 API + 재고 차감 | 상품 조회·검색·비교 + 관리자 CRUD(등록·수정·삭제) + 주문 생성→모의결제→취소, 결제 시 재고 차감(409) |
+| 8 | 서비스별 DB 분리·ERD | 서비스별 독립 스키마 (H2·MariaDB), ERD: docs/제로픽_ERD.dbml (재고 원장·POS·정산 포함) |
 | 9 | Docker Compose 통합 기동 | 인프라+서비스 5종+Kafka+SR+Connect+DB 3종 |
-| 10 | **[핵심] AI 추천/상담** | 행동 가중치 추천 + LLM(gpt-4o-mini) 챗봇 + 규칙 파서 폴백, 정확도·응답시간 실측 문서화 |
+| 10 | **[핵심] AI 추천/상담** | 행동 가중치 추천 + LLM(gpt-4o-mini) 챗봇 + 규칙 파서 폴백, 실측: docs/측정리포트.md |
 
 ### RTL-H (상 · 실시간 재고 동기화) 핵심 10
 
@@ -54,28 +54,30 @@ POS 재고(CDC 동기화)를 한 원장에서 관리하고, 조건부 UPDATE + �
 |---|---|---|
 | 1 | 온라인주문·재고·POS연계 등 4개 이상 | commerce(주문)·**stock(재고 독립)**·pos-sync(POS연계)·product·reco |
 | 2~4 | Eureka·Gateway·Config | 상동 |
-| 5 | OpenFeign: 주문→재고 실시간 확인 | commerce → stock-service 차감·복구 (부족 시 409 + 보상 복구) |
+| 5 | OpenFeign: 주문→재고 실시간 확인 | 주문 생성 시 stock-service 가용 재고 동기 확인(부족 409) + 결제 시 조건부 차감·보상 복구 |
 | 6 | **[핵심] CDC 소스 커넥터** | Kafka Connect + Debezium(MariaDB) — 가상 POS binlog → `zeropick.pos.pos.pos_stock` |
-| 7 | 동기화 + 동시성 제어 | pos-sync 컨슈머 → 재고 원장 반영, 조건부 UPDATE + 낙관적 락(@Version) |
-| 8 | 재고/주문 ERD | stock 원장(온라인/POS 분리 컬럼) + 주문 스키마 |
+| 7 | 동기화 + 동시성 제어 | POS연계(pos-sync)가 CDC 이벤트를 구독해 재고 원장 API 로 실시간 반영, 조건부 UPDATE + 낙관적 락(@Version). 구독 주체를 재고 서비스가 아닌 POS연계 서비스로 둔 것은 1번 요구의 서비스 분리(재고/POS연계)를 따른 설계 |
+| 8 | 재고/주문 ERD | stock 원장(온라인/POS 분리 컬럼) + pos_stock + 정산 ledger, docs/제로픽_ERD.dbml |
 | 9 | Connect 포함 컨테이너화 | docker-compose 에 cdc-connect·pos-db·settlement-db 포함 |
-| 10 | **동기화 신뢰성** | 3회 재시도 → DLQ(`zeropick.pos.dlq`) → 재처리 리스너(멱등), JDBC Sink 로 가상 정산 DB 연동, 종단 일관성 검증 스크립트 |
+| 10 | **동기화 신뢰성** | 3회 재시도 → DLQ(`zeropick.pos.dlq`) → 재처리 리스너(멱등), JDBC Sink 로 가상 정산 DB 연동, 종단 일관성 검증: docs/일관성_검증_시나리오.md + scripts/verify_omni.py |
 
 ### 선택 요구사항 구현 현황
 
+기준을 문면 그대로 적용해, 실제로 돌아가는 것만 구현으로 표기한다.
+
 | 항목 | RTL-M | RTL-H | 구현 |
 |---|:-:|:-:|---|
-| Schema Registry | ✓ | ✓ | 행동 이벤트 Avro 3종 등록·발행 |
-| Circuit Breaker | ✓ | ✓ | Resilience4j — LLM 장애 시 규칙 파서 폴백 (실측 100% 전환) |
+| Schema Registry | ✓ | — | 행동 이벤트 Avro 3종 등록·발행. CDC 이벤트는 JSON 스키마라 H 기준(CDC Avro)에는 미달 |
+| Circuit Breaker | ✓ | — | Resilience4j — LLM 장애 시 규칙 파서 폴백. 재고 조회 폴백은 try/catch(시드값 유지)로, H 기준의 CB 는 아님 |
 | 추천 성과 대시보드 | ✓ | — | 클릭률·폴백률 실시간 집계 + 관리자 화면 |
 | 자연어 상품 검색 | ✓ | — | LLM 조건 추출 + 하드필터 파이프라인 |
 | 관리자 동기화 현황 화면 | — | ✓ | CDC 반영·DLQ·재처리 카운트 + 최근 이벤트 (관리자 '재고 동기화' 탭) |
 | AI 재고 예측 | — | ✓ | 주문 이벤트 기반 일 판매 속도 → 소진 임박 TOP 5 |
-| 부하 테스트 | ✓ | ✓ | k6 스크립트 + 실측 요약 (loadtest/) |
-| 모니터링 | ✓ | ✓ | Micrometer + Prometheus/Grafana 구성 (monitoring/) |
-| Spring Cloud Bus | ✓ | ✓ | bus-kafka + busrefresh (commerce) |
-| Kubernetes | ✓ | ✓ | 매니페스트 4종 (k8s/) |
-| 로그 중앙화 | ✓ | ✓ | EFK 구성 (efk/, docker-compose.efk.yml) |
+| 부하 테스트 | ✓ | — | 추천 API k6 3회 실측 (loadtest/). H 기준(다채널 동시 주문 시뮬레이션)은 미실시 |
+| Spring Cloud Bus | ✓ | ✓ | bus-kafka + commerce busrefresh 노출 (검증 스크립트 10번 항목) |
+| Kubernetes | 부분 | 부분 | 전 스택 매니페스트 작성 (k8s/, CDC 인프라 포함). 클러스터 배포 검증은 미실시 |
+
+모니터링(Micrometer+Grafana)·로그 중앙화(EFK)는 미구현이라 표에 넣지 않는다.
 
 ## 실행
 
