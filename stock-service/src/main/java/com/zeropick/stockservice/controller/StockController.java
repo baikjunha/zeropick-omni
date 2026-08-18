@@ -45,6 +45,11 @@ public class StockController {
         return StockResponse.from(stockService.restore(productId, request.qty()));
     }
 
+    @PutMapping("/{productId}/online")
+    public StockResponse setOnline(@PathVariable Long productId, @Valid @RequestBody OnlineRequest request) {
+        return StockResponse.from(stockService.setOnline(productId, request.qty()));
+    }
+
     @PutMapping("/{productId}/pos")
     public StockResponse applyPos(@PathVariable Long productId, @Valid @RequestBody PosRequest request) {
         return StockResponse.from(stockService.applyPos(productId, request.posStock(), request.storeCode()));
@@ -63,6 +68,9 @@ public class StockController {
     }
 
     public record QtyRequest(@NotNull @Min(1) Integer qty) {
+    }
+
+    public record OnlineRequest(@NotNull @Min(0) Integer qty) {
     }
 
     public record PosRequest(@NotNull @Min(0) Integer posStock, String storeCode) {

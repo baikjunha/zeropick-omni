@@ -111,6 +111,14 @@ public class StockService {
     }
 
     @Transactional
+    public Stock setOnline(Long productId, int qty) {
+        Stock stock = stockRepository.findById(productId)
+                .orElseGet(() -> stockRepository.save(new Stock(productId, 0)));
+        stock.setOnlineStock(qty);
+        return stock;
+    }
+
+    @Transactional
     public Stock applyPos(Long productId, int posStock, String storeCode) {
         Stock stock = stockRepository.findById(productId)
                 .orElseGet(() -> stockRepository.save(new Stock(productId, 0)));

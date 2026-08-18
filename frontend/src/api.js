@@ -204,5 +204,8 @@ export const syncStockLedger = () =>
 export const posTerminalSet = (productId, stock) =>
   api.put(`/pos-sync-service/pos-terminal/${productId}`, { stock }).then((r) => r.data)
 
+export const setOnlineStock = (productId, qty) =>
+  api.put(`/stock-service/stocks/${productId}/online`, { qty }).then((r) => r.data)
+
 export const fetchStockForecast = (limit = 5) =>
   api.get(`/recommendation-service/stock-forecast?limit=${limit}`).then((r) => r.data).catch(() => [])

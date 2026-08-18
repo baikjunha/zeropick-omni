@@ -45,6 +45,10 @@ public class Stock {
         return productId;
     }
 
+    public void setOnlineStock(Integer onlineStock) {
+        this.onlineStock = onlineStock;
+    }
+
     public Integer getOnlineStock() {
         return onlineStock;
     }

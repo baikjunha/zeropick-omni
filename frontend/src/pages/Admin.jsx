@@ -409,8 +409,15 @@ function Products() {
     const patch = edits[p.id]
     if (!patch) return
     await api.updateProduct(p.id, { ...p, price: Number(patch.price ?? p.price), stock: Number(patch.stock ?? p.stock) })
+    if (patch.stock != null) await api.setOnlineStock(p.id, Number(patch.stock))
     setEdits((e) => { const next = { ...e }; delete next[p.id]; return next })
     refresh()
+    api.fetchStocks(visible.map((x) => x.id)).then((list) => {
+      if (!Array.isArray(list)) return
+      const map = {}
+      list.forEach((st) => { map[st.productId] = st })
+      setLedger(map)
+    })
   }
   const removeRow = async (p) => {
     if (!window.confirm('"' + p.name + '" 을(를) 삭제할까요?')) return
@@ -435,7 +442,7 @@ function Products() {
             {syncMsg && <span style={{ fontSize: 11.5, color: 'var(--faint)' }}>{syncMsg}</span>}
             <input className="au" style={{ width: 220, padding: '7px 11px', fontSize: 12.5 }}
               placeholder="상품명·브랜드 검색" value={q} onChange={(e) => setQ(e.target.value)} />
-            <button className="btn" onClick={syncLedger}>원장 동기화</button>
+            <button className="btn" onClick={syncLedger}>신규 상품 원장 등록</button>
             <button className="btn" style={{ background: 'var(--primary)', color: '#fff', border: 'none' }}
               onClick={() => setDraft(draft ? null : { name: '', brand: '', category: cats[0], price: '', stock: 30, kcal: 0, sugarG: 0, carbG: 0, imageUrl: '', sweeteners: '' })}>
               {draft ? '등록 취소' : '+ 상품 등록'}
@@ -503,9 +510,10 @@ function Products() {
         </div>
       </div>
       <div className="footnote">
-        검색 결과 상위 100개만 표시. 시드재고는 상품 카탈로그의 초기값, 원장은 stock-service 의 실시간 값(온라인 · POS).
-        상품 등록 시 원장이 자동 동기화되고, 수동으로는 우측 상단 '원장 동기화' 버튼을 쓴다.
-        백엔드 미가동 시 변경분은 로컬 오버레이에 기록된다.
+        검색 결과 상위 100개만 표시. 판매에 쓰이는 실제 값은 원장(온라인 · POS)이고,
+        재고 칸을 수정해 저장하면 원장 온라인 재고가 그 값으로 바뀐다.
+        '신규 상품 원장 등록' 버튼은 카탈로그에만 있고 원장에 없는 상품을 원장에 만들어주는 용도다(상품 등록 시엔 자동).
+        POS 재고는 여기서 못 바꾼다 — 재고 동기화(CDC) 탭의 가상 POS 단말이 그 입구다.
       </div>
     </>
   )
