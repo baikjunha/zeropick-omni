@@ -79,7 +79,7 @@ function AdminConsole({ onLogout }) {
           <button className={tab === 'log' ? 'on' : ''} onClick={() => setTab('log')}>📡 이벤트 로그</button>
           <div className="grp">운영</div>
           <button className={tab === 'products' ? 'on' : ''} onClick={() => setTab('products')}>📦 상품 · 재고 관리</button>
-          <button className={tab === 'sync' ? 'on' : ''} onClick={() => setTab('sync')}>🔄 재고 동기화 (CDC)</button>
+          <button className={tab === 'sync' ? 'on' : ''} onClick={() => setTab('sync')}>🧾 재고 로그 (CDC)</button>
           <div className="grp">계정</div>
           <button onClick={onLogout}>🚪 로그아웃</button>
         </nav>
@@ -87,7 +87,7 @@ function AdminConsole({ onLogout }) {
       </aside>
       <main className="adm-main">
         <div className="adm-top">
-          <h1>{{ stats: '성과 대시보드', log: '이벤트 로그', products: '상품 · 재고 관리', sync: '재고 동기화 현황' }[tab]}</h1>
+          <h1>{{ stats: '성과 대시보드', log: '이벤트 로그', products: '상품 · 재고 관리', sync: '재고 로그' }[tab]}</h1>
           <span className="live"><span className="dot" />LIVE</span>
           <div className="actions">
             {ev.some((e) => e.demo) && <button className="btn" onClick={() => { clearEvents(true); setTick((t) => t + 1) }}>예시 지우기</button>}
@@ -162,7 +162,7 @@ function SyncStatus() {
       </div>
 
       <div className="acard" style={{ marginTop: 14, padding: 18 }}>
-        <h3>최근 동기화 이벤트</h3>
+        <h3>재고 로그 — POS 변경이 원장에 반영된 기록</h3>
         {(st?.recentEvents ?? []).length === 0 && <p style={{ color: 'var(--muted)', fontSize: 13 }}>아직 반영된 이벤트가 없다 — POS DB 의 pos_stock 을 변경하면 여기로 흐른다</p>}
         {(st?.recentEvents ?? []).map((e, i) => (
           <div key={i} style={{ display: 'flex', gap: 14, padding: '7px 0', borderBottom: '1px solid var(--line)', fontSize: 13.5, alignItems: 'center' }}>
@@ -442,7 +442,6 @@ function Products() {
             {syncMsg && <span style={{ fontSize: 11.5, color: 'var(--faint)' }}>{syncMsg}</span>}
             <input className="au" style={{ width: 220, padding: '7px 11px', fontSize: 12.5 }}
               placeholder="상품명·브랜드 검색" value={q} onChange={(e) => setQ(e.target.value)} />
-            <button className="btn" onClick={syncLedger}>신규 상품 원장 등록</button>
             <button className="btn" style={{ background: 'var(--primary)', color: '#fff', border: 'none' }}
               onClick={() => setDraft(draft ? null : { name: '', brand: '', category: cats[0], price: '', stock: 30, kcal: 0, sugarG: 0, carbG: 0, imageUrl: '', sweeteners: '' })}>
               {draft ? '등록 취소' : '+ 상품 등록'}
@@ -511,9 +510,8 @@ function Products() {
       </div>
       <div className="footnote">
         검색 결과 상위 100개만 표시. 판매에 쓰이는 실제 값은 원장(온라인 · POS)이고,
-        재고 칸을 수정해 저장하면 원장 온라인 재고가 그 값으로 바뀐다.
-        '신규 상품 원장 등록' 버튼은 카탈로그에만 있고 원장에 없는 상품을 원장에 만들어주는 용도다(상품 등록 시엔 자동).
-        POS 재고는 여기서 못 바꾼다 — 재고 동기화(CDC) 탭의 가상 POS 단말이 그 입구다.
+        재고 칸을 수정해 저장하면 온라인 재고가 그 값으로 바뀐다.
+        POS는 오프라인 매장 계산대의 재고 — 여기서는 못 바꾸고, 재고 로그 탭의 가상 POS 단말이 그 입구다.
       </div>
     </>
   )
