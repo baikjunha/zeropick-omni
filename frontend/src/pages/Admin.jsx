@@ -336,10 +336,43 @@ function Products() {
   const [rows, setRows] = useState(getProducts)
   const [draft, setDraft] = useState(null)
   const [edits, setEdits] = useState({})
-  const refresh = () => setRows(getProducts())
+  const [ledger, setLedger] = useState({})
+  const [syncMsg, setSyncMsg] = useState('')
+  const refresh = () => api.fetchProducts().then((list) => setRows(list && list.length ? list : getProducts()))
+  useEffect(() => { refresh() }, [])
 
   const filtered = rows.filter((p) =>
     !q || p.name.toLowerCase().includes(q.toLowerCase()) || p.brand.toLowerCase().includes(q.toLowerCase()))
+  const visible = filtered.slice(0, 100)
+  const cats = useMemo(() => {
+    const s = [...new Set(rows.map((p) => p.cat).filter(Boolean))]
+    return s.length ? s : CATEGORIES
+  }, [rows])
+
+  useEffect(() => {
+    const ids = visible.map((p) => p.id)
+    if (!ids.length) return
+    let on = true
+    api.fetchStocks(ids).then((list) => {
+      if (!on || !Array.isArray(list)) return
+      const map = {}
+      list.forEach((s) => { map[s.productId] = s })
+      setLedger(map)
+    })
+    return () => { on = false }
+  }, [q, rows])
+
+  const syncLedger = async () => {
+    setSyncMsg('동기화 중...')
+    const r = await api.syncStockLedger()
+    setSyncMsg(r ? `원장 반영 — 신규 ${r.created} · 보충 ${r.refilled} / 카탈로그 ${r.total}` : '동기화 실패 (stock-service 확인)')
+    api.fetchStocks(visible.map((p) => p.id)).then((list) => {
+      if (!Array.isArray(list)) return
+      const map = {}
+      list.forEach((s) => { map[s.productId] = s })
+      setLedger(map)
+    })
+  }
 
   const saveRow = async (p) => {
     const patch = edits[p.id]
@@ -357,6 +390,7 @@ function Products() {
     if (!draft.name || !draft.price) return
     await api.createProduct({ ...draft, sweeteners: (draft.sweeteners || '').split(',').map((x) => x.trim()).filter(Boolean) })
     setDraft(null)
+    await api.syncStockLedger()
     refresh()
   }
 
@@ -366,11 +400,13 @@ function Products() {
         <div className="hd">
           <b>상품 {filtered.length.toLocaleString()}개</b>
           <span>POST · PUT · DELETE /product-service/products — 핵심 7 CRUD</span>
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+            {syncMsg && <span style={{ fontSize: 11.5, color: 'var(--faint)' }}>{syncMsg}</span>}
             <input className="au" style={{ width: 220, padding: '7px 11px', fontSize: 12.5 }}
               placeholder="상품명·브랜드 검색" value={q} onChange={(e) => setQ(e.target.value)} />
+            <button className="btn" onClick={syncLedger}>원장 동기화</button>
             <button className="btn" style={{ background: 'var(--primary)', color: '#fff', border: 'none' }}
-              onClick={() => setDraft(draft ? null : { name: '', brand: '', category: CATEGORIES[0], price: '', stock: 30, kcal: 0, sugarG: 0, carbG: 0, imageUrl: '', sweeteners: '' })}>
+              onClick={() => setDraft(draft ? null : { name: '', brand: '', category: cats[0], price: '', stock: 30, kcal: 0, sugarG: 0, carbG: 0, imageUrl: '', sweeteners: '' })}>
               {draft ? '등록 취소' : '+ 상품 등록'}
             </button>
           </div>
@@ -381,7 +417,7 @@ function Products() {
             <div><div className="mh5">브랜드</div><input className="au" value={draft.brand} onChange={(e) => setDraft({ ...draft, brand: e.target.value })} /></div>
             <div><div className="mh5">카테고리</div>
               <select className="au" value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })}>
-                {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+                {cats.map((c) => <option key={c}>{c}</option>)}
               </select></div>
             <div><div className="mh5">가격 *</div><input className="au" type="number" value={draft.price} onChange={(e) => setDraft({ ...draft, price: e.target.value })} /></div>
             <div><div className="mh5">재고</div><input className="au" type="number" value={draft.stock} onChange={(e) => setDraft({ ...draft, stock: e.target.value })} /></div>
@@ -399,10 +435,11 @@ function Products() {
           <table className="adm">
             <thead>
               <tr><th style={{ width: 46 }}></th><th>상품</th><th style={{ width: 100 }}>카테고리</th>
-                  <th style={{ width: 110 }}>가격</th><th style={{ width: 84 }}>재고</th><th style={{ width: 130 }}></th></tr>
+                  <th style={{ width: 110 }}>가격</th><th style={{ width: 84 }}>시드재고</th>
+                  <th style={{ width: 120 }}>원장 (온라인·POS)</th><th style={{ width: 130 }}></th></tr>
             </thead>
             <tbody>
-              {filtered.slice(0, 100).map((p) => {
+              {visible.map((p) => {
                 const e = edits[p.id] || {}
                 const dirty = e.price != null || e.stock != null
                 return (
@@ -416,6 +453,11 @@ function Products() {
                       value={e.price ?? p.price} onChange={(ev) => setEdits({ ...edits, [p.id]: { ...e, price: ev.target.value } })} /></td>
                     <td><input className="au num" style={{ padding: '5px 8px', fontSize: 12 }} type="number"
                       value={e.stock ?? p.stock} onChange={(ev) => setEdits({ ...edits, [p.id]: { ...e, stock: ev.target.value } })} /></td>
+                    <td className="num" style={{ fontSize: 12.5 }}>
+                      {ledger[p.id]
+                        ? <><b>{ledger[p.id].onlineStock}</b><span style={{ color: 'var(--faint)' }}> · {ledger[p.id].posStock}</span></>
+                        : <span style={{ color: 'var(--faint)' }}>—</span>}
+                    </td>
                     <td style={{ whiteSpace: 'nowrap' }}>
                       <button className="btn" disabled={!dirty}
                         style={dirty ? { background: 'var(--primary)', color: '#fff', border: 'none' } : { opacity: .45 }}
@@ -430,8 +472,9 @@ function Products() {
         </div>
       </div>
       <div className="footnote">
-        검색 결과 상위 100개만 표시. 백엔드 미가동 시 변경분은 로컬 오버레이에 기록돼 쇼핑몰 화면에도 즉시 반영된다 —
-        product-service 가 올라오면 실제 CRUD API 를 호출한다.
+        검색 결과 상위 100개만 표시. 시드재고는 상품 카탈로그의 초기값, 원장은 stock-service 의 실시간 값(온라인 · POS).
+        상품 등록 시 원장이 자동 동기화되고, 수동으로는 우측 상단 '원장 동기화' 버튼을 쓴다.
+        백엔드 미가동 시 변경분은 로컬 오버레이에 기록된다.
       </div>
     </>
   )

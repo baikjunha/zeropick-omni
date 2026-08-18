@@ -23,3 +23,22 @@ eureka:
   client:
     register-with-eureka: true
     fetch-registry: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      stockLedger:
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+  timelimiter:
+    instances:
+      stockLedger:
+        timeout-duration: 3s

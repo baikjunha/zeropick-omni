@@ -1,5 +1,7 @@
 package com.zeropick.possyncservice.status;
 
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -18,6 +20,15 @@ public class SyncStatusTracker {
     private final AtomicLong applied = new AtomicLong();
     private final AtomicLong dlq = new AtomicLong();
     private final AtomicLong replayed = new AtomicLong();
+
+    public SyncStatusTracker(MeterRegistry registry) {
+        Gauge.builder("possync.applied.count", applied, AtomicLong::get)
+                .description("POS CDC 이벤트 원장 반영 누계").register(registry);
+        Gauge.builder("possync.dlq.count", dlq, AtomicLong::get)
+                .description("DLQ 적재 누계 — 0 초과면 동기화 이상").register(registry);
+        Gauge.builder("possync.replayed.count", replayed, AtomicLong::get)
+                .description("DLQ 재처리 성공 누계").register(registry);
+    }
     private final Deque<Map<String, Object>> recent = new ArrayDeque<>();
     private volatile String lastError;
     private volatile LocalDateTime lastAppliedAt;

@@ -36,3 +36,8 @@ spring:
               uri: lb://POS-SYNC-SERVICE
               predicates:
                 - Path=/pos-sync-service/**
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus

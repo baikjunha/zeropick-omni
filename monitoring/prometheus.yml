@@ -1,0 +1,25 @@
+global:
+  scrape_interval: 10s
+
+scrape_configs:
+  - job_name: zeropick-services
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['host.docker.internal:8000']
+        labels: { service: apigateway }
+      - targets: ['host.docker.internal:8081']
+        labels: { service: product }
+      - targets: ['host.docker.internal:8082']
+        labels: { service: commerce }
+      - targets: ['host.docker.internal:8083']
+        labels: { service: recommendation }
+      - targets: ['host.docker.internal:8084']
+        labels: { service: stock }
+      - targets: ['host.docker.internal:8086']
+        labels: { service: pos-sync }
+
+  - job_name: kafka
+    static_configs:
+      - targets: ['kafka-exporter:9308']
+
+rule_files: []

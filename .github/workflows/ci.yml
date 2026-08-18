@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - config-service
+          - service-discovery
+          - apigateway-service
+          - product-service
+          - commerce-service
+          - recommendation-service
+          - stock-service
+          - pos-sync-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+          cache-dependency-path: ${{ matrix.service }}/pom.xml
+      - name: Build and test
+        working-directory: ${{ matrix.service }}
+        run: |
+          chmod +x mvnw
+          ./mvnw -B -ntp package
+      - name: Docker image build
+        working-directory: ${{ matrix.service }}
+        run: docker build -t zeropick/${{ matrix.service }}:${{ github.sha }} .
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build

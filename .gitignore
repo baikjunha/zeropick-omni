@@ -1,4 +1,4 @@
 reference-repo/
 .idea/
 *.iml
-.env
+.envlogs/

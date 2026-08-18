@@ -195,5 +195,11 @@ export const syncCartRemove = (cartItemId) =>
 export const fetchPosSyncStatus = () =>
   api.get('/pos-sync-service/status').then((r) => r.data).catch(() => null)
 
+export const fetchStocks = (ids) =>
+  api.get('/stock-service/stocks', { params: { ids: ids.join(',') } }).then((r) => r.data).catch(() => [])
+
+export const syncStockLedger = () =>
+  api.post('/stock-service/stocks/sync').then((r) => r.data).catch(() => null)
+
 export const fetchStockForecast = (limit = 5) =>
   api.get(`/recommendation-service/stock-forecast?limit=${limit}`).then((r) => r.data).catch(() => [])
