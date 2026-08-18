@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -35,7 +39,12 @@ jobs:
           ./mvnw -B -ntp package
       - name: Docker image build
         working-directory: ${{ matrix.service }}
-        run: docker build -t zeropick/${{ matrix.service }}:${{ github.sha }} .
+        run: docker build -t ghcr.io/${{ github.repository_owner }}/zeropick-${{ matrix.service }}:latest .
+      - name: GHCR login and push (main)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker push ghcr.io/${{ github.repository_owner }}/zeropick-${{ matrix.service }}:latest
 
   frontend:
     runs-on: ubuntu-latest
