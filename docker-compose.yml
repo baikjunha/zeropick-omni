@@ -115,9 +115,11 @@ services:
   cdc-connect:
     image: debezium/connect:2.7.3.Final
     container_name: cdc-connect
-    depends_on: [kafka, pos-db]
+    depends_on: [kafka, pos-db, schema-registry]
     ports:
       - "8283:8083"
+    volumes:
+      - ./cdc/avro-converter:/kafka/connect/avro-converter
     environment:
       - BOOTSTRAP_SERVERS=kafka:29092
       - GROUP_ID=cdc-connect-group

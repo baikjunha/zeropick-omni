@@ -46,7 +46,7 @@ POS 재고(CDC 동기화)를 한 원장에서 관리하고, 조건부 UPDATE + �
 | 7 | 상품/주문 API + 재고 차감 | 상품 조회·검색·비교 + 관리자 CRUD(등록·수정·삭제) + 주문 생성→모의결제→취소, 결제 시 재고 차감(409) |
 | 8 | 서비스별 DB 분리·ERD | 서비스별 독립 스키마 (H2·MariaDB), ERD: docs/제로픽_ERD.dbml (재고 원장·POS·정산 포함) |
 | 9 | Docker Compose 통합 기동 | 인프라+서비스 5종+Kafka+SR+Connect+DB 3종 |
-| 10 | **[핵심] AI 추천/상담** | 행동 가중치 추천 + LLM(gpt-4o-mini) 챗봇 + 규칙 파서 폴백, 실측: docs/측정리포트.md |
+| 10 | **[핵심] AI 추천/상담** | 행동 가중치 추천 + LLM(gpt-4o-mini) 챗봇 + 규칙 파서 폴백, 실측: docs/측정리포트.md. 상품 데이터 2,239건(6개 소스 수집·영양성분 검증) |
 
 ### RTL-H (상 · 실시간 재고 동기화) 핵심 10
 
@@ -67,17 +67,18 @@ POS 재고(CDC 동기화)를 한 원장에서 관리하고, 조건부 UPDATE + �
 
 | 항목 | RTL-M | RTL-H | 구현 |
 |---|:-:|:-:|---|
-| Schema Registry | ✓ | — | 행동 이벤트 Avro 3종 등록·발행. CDC 이벤트는 JSON 스키마라 H 기준(CDC Avro)에는 미달 |
-| Circuit Breaker | ✓ | — | Resilience4j — LLM 장애 시 규칙 파서 폴백. 재고 조회 폴백은 try/catch(시드값 유지)로, H 기준의 CB 는 아님 |
+| Schema Registry | ✓ | ✓ | 행동 이벤트 Avro 3종 + CDC 이벤트 Avro 전환(Debezium AvroConverter, `zeropick.pos.pos.pos_stock-key/value` 스키마 등록) |
+| Circuit Breaker | ✓ | ✓ | Resilience4j — LLM 장애 시 규칙 파서 폴백 + 재고 조회 실패 시 시드값 폴백(product→stock, CircuitBreakerFactory) |
 | 추천 성과 대시보드 | ✓ | — | 클릭률·폴백률 실시간 집계 + 관리자 화면 |
 | 자연어 상품 검색 | ✓ | — | LLM 조건 추출 + 하드필터 파이프라인 |
-| 관리자 동기화 현황 화면 | — | ✓ | CDC 반영·DLQ·재처리 카운트 + 최근 이벤트 (관리자 '재고 동기화' 탭) |
+| 관리자 화면 | ✓ | ✓ | 성과 대시보드 + 상품·재고 관리(CRUD·원장 온라인/POS) + 재고 동기화 현황(CDC 반영·DLQ·재처리) |
 | AI 재고 예측 | — | ✓ | 주문 이벤트 기반 일 판매 속도 → 소진 임박 TOP 5 |
-| 부하 테스트 | ✓ | — | 추천 API k6 3회 실측 (loadtest/). H 기준(다채널 동시 주문 시뮬레이션)은 미실시 |
+| 부하 테스트 | ✓ | ✓ | 추천 API 30VU(loadtest/reco-load.js) + 다채널 동시 주문 30VU 60초 5,428req 실패율 1.58% (multichannel-order.js) |
+| 모니터링 | ✓ | ✓ | Micrometer+Prometheus 7타깃, kafka-exporter Consumer Lag, pos-sync 동기화 게이지(applied/dlq/replayed), Grafana 프로비저닝 (docker-compose.monitoring.yml) |
+| 로그 중앙화 | ✓ | ✓ | Fluent Bit 테일 → Elasticsearch(zeropick-logs) → Kibana (docker-compose.efk.yml) |
+| CI/CD | ✓ | ✓ | GitHub Actions — 서비스 8종 매트릭스 빌드·테스트 + 도커 이미지 빌드 + 프론트 빌드 (.github/workflows/ci.yml) |
 | Spring Cloud Bus | ✓ | ✓ | bus-kafka + commerce busrefresh 노출 (검증 스크립트 10번 항목) |
-| Kubernetes | 부분 | 부분 | 전 스택 매니페스트 작성 (k8s/, CDC 인프라 포함). 클러스터 배포 검증은 미실시 |
-
-모니터링(Micrometer+Grafana)·로그 중앙화(EFK)는 미구현이라 표에 넣지 않는다.
+| Kubernetes | 부분 | 부분 | 전 스택 매니페스트 작성 (k8s/, CDC 인프라 포함). 로컬 클러스터 배포 검증은 미실시 |
 
 ## 실행
 
@@ -88,8 +89,13 @@ for s in config-service service-discovery apigateway-service product-service \
   (cd $s && ./mvnw -q -DskipTests package)
 done
 
+# 1.5) CDC Avro 컨버터 플러그인 조립 (최초 1회 — cdc/avro-converter/ 에 jar 생성)
+./product-service/mvnw -f cdc/avro-converter-pom.xml dependency:copy-dependencies -DoutputDirectory=cdc/avro-converter
+
 # 2) 전체 스택 기동 (LLM 키는 선택 — 없으면 챗봇이 규칙 기반 폴백으로 동작)
 LLM_API_KEY=<키> docker compose up -d --build
+# 모니터링(Prometheus/Grafana)·로그 중앙화(EFK)까지:
+# docker compose -f docker-compose.yml -f docker-compose.monitoring.yml -f docker-compose.efk.yml up -d
 
 # 3) CDC 커넥터 등록 (Connect REST :8283)
 curl -X POST -H "Content-Type: application/json" -d @cdc/connectors/pos-source.json     http://localhost:8283/connectors

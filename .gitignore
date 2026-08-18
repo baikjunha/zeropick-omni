@@ -2,3 +2,4 @@ reference-repo/
 .idea/
 *.iml
 .envlogs/
+cdc/avro-converter/

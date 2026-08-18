@@ -88,6 +88,10 @@ export default function Shop() {
     return r
   }, [priced, sort, scored])
 
+  const [visibleCount, setVisibleCount] = useState(60)
+  useEffect(() => { setVisibleCount(60) }, [filters, sort, q])
+  const visible = sorted.slice(0, visibleCount)
+
   return (
     <div className="wrap">
       <FilterSidebar filters={filters} setFilters={setFilters} />
@@ -110,7 +114,7 @@ export default function Shop() {
           {prefs.banSw.length > 0 && <> · 🚫 제외 감미료 조건이 적용 중이에요</>}
         </div>
         <div className="grid">
-          {sorted.map((p) => (
+          {visible.map((p) => (
             <ProductCard key={p.id} p={p} reco={recoTop.has(p.id)}
               onDetail={(prod) => {
 
@@ -120,6 +124,14 @@ export default function Shop() {
               onBuy={setBuying} />
           ))}
         </div>
+        {sorted.length > visibleCount && (
+          <div style={{ textAlign: 'center', margin: '18px 0 6px' }}>
+            <button className="btn" style={{ padding: '10px 28px', fontWeight: 700 }}
+              onClick={() => setVisibleCount((c) => c + 60)}>
+              더 보기 ({visibleCount.toLocaleString()} / {sorted.length.toLocaleString()})
+            </button>
+          </div>
+        )}
         {sorted.length === 0 && <div className="empty">조건에 맞는 상품이 없어요 — 필터를 풀어보세요</div>}
       </main>
       {detail && <DetailModal p={detail} onClose={() => setDetail(null)} onBuy={(p) => { setDetail(null); setBuying(p) }} />}

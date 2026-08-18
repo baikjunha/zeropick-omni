@@ -33,6 +33,7 @@ public class CdcListenerStarter {
             try {
                 if (!stockClient.getStocks(List.of(1L)).isEmpty()) {
                     registry.getListenerContainer("posCdc").start();
+                    registry.getListenerContainer("posDlqReplay").start();
                     log.info("[CDC 소비 시작] 재고 원장 준비 확인 (시도 {}회)", attempt);
                     return;
                 }

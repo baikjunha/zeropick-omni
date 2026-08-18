@@ -67,8 +67,20 @@ public class ProductService {
 
         List<Product> products = productRepository.findAll(spec);
         stockOverlay.overlay(products);
+
+        Map<Long, List<ProductSweetener>> sweetenersByProduct = productSweetenerRepository.findAll().stream()
+                .collect(Collectors.groupingBy(ps -> ps.getId().getProductId()));
+        Map<Long, String> sweetenerNameById = sweetenerRepository.findAll().stream()
+                .collect(Collectors.toMap(s -> s.getId(), s -> s.getName()));
+        Map<Long, List<String>> allergensByProduct = productAllergenRepository.findAll().stream()
+                .collect(Collectors.groupingBy(pa -> pa.getId().getProductId(),
+                        Collectors.mapping(pa -> pa.getId().getAllergen(), Collectors.toList())));
+
         List<ProductResponse> responses = products.stream()
-                .map(this::toResponse)
+                .map(p -> toResponse(p,
+                        sweetenersByProduct.getOrDefault(p.getId(), List.of()),
+                        sweetenerNameById,
+                        allergensByProduct.getOrDefault(p.getId(), List.of())))
                 .collect(Collectors.toList());
 
         return applySort(responses, sort);
@@ -98,14 +110,10 @@ public class ProductService {
         return responses.stream().sorted(comparator).collect(Collectors.toList());
     }
 
-    private ProductResponse toResponse(Product p) {
-        List<ProductSweetener> productSweeteners = productSweetenerRepository.findAll().stream()
-                .filter(ps -> ps.getId().getProductId().equals(p.getId()))
-                .collect(Collectors.toList());
-
-        Map<Long, String> sweetenerNameById = sweetenerRepository.findAll().stream()
-                .collect(Collectors.toMap(s -> s.getId(), s -> s.getName()));
-
+    private ProductResponse toResponse(Product p,
+                                        List<ProductSweetener> productSweeteners,
+                                        Map<Long, String> sweetenerNameById,
+                                        List<String> allergens) {
         List<String> sweetenerNames = productSweeteners.stream()
                 .map(ps -> sweetenerNameById.get(ps.getId().getSweetenerId()))
                 .filter(name -> name != null)
@@ -115,11 +123,6 @@ public class ProductService {
                 .map(ps -> new ProductResponse.SweetenerAmount(
                         sweetenerNameById.get(ps.getId().getSweetenerId()),
                         ps.getAmountG()))
-                .collect(Collectors.toList());
-
-        List<String> allergens = productAllergenRepository.findAll().stream()
-                .filter(pa -> pa.getId().getProductId().equals(p.getId()))
-                .map(pa -> pa.getId().getAllergen())
                 .collect(Collectors.toList());
 
         return new ProductResponse(
